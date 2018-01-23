@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: An example serverless "Hello World" application with a custom authorizer.
+
+Resources:
+  PatchServerFunc:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: patch_server.lambda_handler
+      Runtime: python3.6
+      CodeUri: ./PatchServerFunc
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref Bucket
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action: s3:ListBucket
+            Resource: !Sub 'arn:aws:s3:::${Bucket}'
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub 'arn:aws:s3:::${Bucket}/*'
+      Events:
+        GetApi:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: get
+
+  Bucket:
+    Type: AWS::S3::Bucket
