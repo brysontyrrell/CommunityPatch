@@ -88,7 +88,7 @@ def patch_title(title):
 def lambda_handler(event, context):
     global tempdir
     tempdir = tempfile.mkdtemp()
-    
+
     path = event['pathParameters']['proxy'].split('/')
 
     if path[0] == 'software' and len(path) == 1:
