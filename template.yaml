@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: An example serverless "Hello World" application with a custom authorizer.
+Description: A serverless Patch Server for Jamf Pro using AWS.
 
 Resources:
   PatchServerFunc:
