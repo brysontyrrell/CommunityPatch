@@ -1,16 +1,18 @@
 import json
 import os
+import shutil
 import tempfile
 
 import boto3
 from botocore.exceptions import ClientError
 
 s3_bucket = boto3.resource('s3').Bucket(os.environ['S3_BUCKET'])
-tempdir = tempfile.mkdtemp()
+tempdir = ''
 
 
 def response(message, status_code):
     print(message)
+    shutil.rmtree(tempdir)
     return {
         'isBase64Encoded': False,
         'statusCode': status_code,
@@ -22,19 +24,21 @@ def response(message, status_code):
 def title_list():
     titles = os.listdir(tempdir)
     print(f'Temp Dir Contents: {titles}')
-    software_titles = dict()
+    software_titles = list()
 
     for title in titles:
         with open(os.path.join(tempdir, title), 'r') as f_obj:
             data = json.load(f_obj)
 
-            software_titles[title] = {
-                'name': data['name'],
-                'publisher': data['publisher'],
-                'lastMondified': data['lastModified'],
-                'currentVersion': data['currentVersion'],
-                'id': data['id']
-            }
+            software_titles.append(
+                {
+                    'name': data['name'],
+                    'publisher': data['publisher'],
+                    'lastModified': data['lastModified'],
+                    'currentVersion': data['currentVersion'],
+                    'id': data['id']
+                }
+            )
 
     return software_titles
 
@@ -82,7 +86,9 @@ def patch_title(title):
 
 
 def lambda_handler(event, context):
-    print(event)
+    global tempdir
+    tempdir = tempfile.mkdtemp()
+    
     path = event['pathParameters']['proxy'].split('/')
 
     if path[0] == 'software' and len(path) == 1:

@@ -53,57 +53,57 @@ To get the URL for your Patch Server, go to the `API Gateway` page in the `AWS C
 
 Select the Patch Server (it will have the same name as the stack), go to `Stages` in the sidebar, and click on `Prod`. You should see a URL string similar to this:
 
-**https://<ID-STRING>.execute-api.<REGION>.amazonaws.com/Prod**
+**https://`<API-GATEWAY-ID>`.execute-api.`<REGION>`.amazonaws.com/Prod**
 
 The following endpoints are exposed for this service for your Jamf Pro server to view and subscribe avaialable patch titles:
 
 - `/software`: Lists all available patch titles that are hosted on your Patch Server. They will be returned in the following JSON format:
 
 ```json
-{
-  "TitleName1": {
+[
+  {
     "name": "string",
     "publisher": "string",
     "lastMondified": "ISO date string",
     "currentVersion": "string",
     "id": "TitleName1"
   },
-  "TitleName2": {
+  {
     "name": "string",
     "publisher": "string",
     "lastMondified": "ISO date string",
     "currentVersion": "string",
     "id": "TitleName2"
   },
-  "TitleName3": {
+  {
     "name": "string",
     "publisher": "string",
     "lastMondified": "ISO date string",
     "currentVersion": "string",
     "id": "TitleName3"
   }
-}
+]
 ```
 
 - `/software/TitleName1,TitleName2`: Returns a subset of patch titles. The titles must have their IDs passed in a commma separated string as shown. The returned data is the same as the `/sofware` endpoint.
 
 ```json
-{
-  "TitleName1": {
+[
+  {
     "name": "string",
     "publisher": "string",
     "lastMondified": "ISO date string",
     "currentVersion": "string",
     "id": "TitleName1"
   },
-  "TitleName2": {
+  {
     "name": "string",
     "publisher": "string",
     "lastMondified": "ISO date string",
     "currentVersion": "string",
     "id": "TitleName2"
   }
-}
+]
 ```
 
 - `/patch/TitleName`: Returns the full JSON patch definition for the provided patch title ID (see Jamf's documentation for more details on the patch title schema).
@@ -122,6 +122,12 @@ The following endpoints are exposed for this service for your Jamf Pro server to
   "id": "TitleName"
 }
 ```
+
+Each endpoint's full URL would be entered into your browser as:
+
+- https://`<API-GATEWAY-ID>`.execute-api.`<REGION>`.amazonaws.com/Prod/software
+- https://`<API-GATEWAY-ID>`.execute-api.`<REGION>`.amazonaws.com/Prod/software/TitleName1,TitleName2
+- https://`<API-GATEWAY-ID>`.execute-api.`<REGION>`.amazonaws.com/Prod/patch/TitleName
 
 ## Populate the S3 Bucket
 
