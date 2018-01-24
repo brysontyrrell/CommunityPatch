@@ -32,7 +32,7 @@ $ aws cloudformation package --template-file template.yaml --s3-bucket <Your-S3-
 Use the created `deployment.yaml` file to create the application in `CloudFormation` (you can change the `--stack-name` value to whatever you prefer):
 
 ```bash
-$ aws cloudformation --template-file deployment.yaml --stack-name ssps --capabilities CAPABILITY_IAM
+$ aws cloudformation deploy --template-file deployment.yaml --stack-name ssps --capabilities CAPABILITY_IAM
 ```
 
 You should see the following output on your screen:
