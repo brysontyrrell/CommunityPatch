@@ -37,12 +37,12 @@ Resources:
             Path: /patch/{proxy+}
             Method: get
 
-  SubscriptionFunc:
+  SubscribeFunc:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: subscription.lambda_handler
+      Handler: subscribe.lambda_handler
       Runtime: python3.6
-      CodeUri: ./SubscriptionFunc
+      CodeUri: ./SubscribeFunc
       Environment:
         Variables:
           S3_BUCKET: !Ref Bucket
@@ -51,12 +51,7 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - dynamodb:Query
-              - dynamodb:Scan
-              - dynamodb:GetItem
               - dynamodb:PutItem
-              - dynamodb:UpdateItem
-              - dynamodb:DeleteItem
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}'
           - Effect: Allow
             Action: s3:PutObject

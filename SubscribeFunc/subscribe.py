@@ -35,10 +35,14 @@ def initial_subscription_request(subscription):
             Item={
                 'id': subscription['id'],
                 'json_url': subscription['json_url']
-            }
+            },
+            ConditionExpression='attribute_not_exists(id)'
         )
     except ClientError as error:
-        return response({'error': f'Internal Server Error: {error}'}, 500)
+        if error.response['Error']['Code'] == 'ConditionalCheckFailedException':
+            return response({'error': f"Conflict: The software title ID '{subscription['id']}' already exists"}, 409)
+        else:
+            return response({'error': f'Internal Server Error: {error}'}, 500)
 
     try:
         s3_bucket.put_object(Body=resp.text.encode(), Key=f"{subscription['id']}.json")
