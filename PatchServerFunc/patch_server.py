@@ -89,15 +89,14 @@ def lambda_handler(event, context):
     global tempdir
     tempdir = tempfile.mkdtemp()
 
-    path = event['pathParameters']['proxy'].split('/')
+    resource = event['resource']
+    parameter = event['pathParameters']
 
-    if path[0] == 'software' and len(path) == 1:
+    if resource == '/software':
         return software()
-    elif path[0] == 'software' and len(path) == 2:
-        titles = path[1].split(',')
-        return select_software(titles)
-    elif path[0] == 'patch' and len(path) == 2:
-        title = path[1]
-        return patch_title(title)
+    elif resource == '/software/{proxy+}' and parameter:
+        return select_software(parameter['proxy'].split(','))
+    elif resource == '/patch/{proxy+}' and parameter:
+        return patch_title(parameter['proxy'])
     else:
         return response({'error': f"Bad Request: {event['path']}"}, 400)

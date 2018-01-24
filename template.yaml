@@ -21,10 +21,20 @@ Resources:
             Action: s3:GetObject
             Resource: !Sub 'arn:aws:s3:::${Bucket}/*'
       Events:
-        GetApi:
+        Software:
           Type: Api
           Properties:
-            Path: /{proxy+}
+            Path: /software
+            Method: get
+        SoftwareTitles:
+          Type: Api
+          Properties:
+            Path: /software/{proxy+}
+            Method: get
+        PatchTitle:
+          Type: Api
+          Properties:
+            Path: /patch/{proxy+}
             Method: get
 
   Bucket:
