@@ -89,15 +89,43 @@ def subscription_request(subscription):
 def new_subscription(event):
     if not event['headers'].get('Content-Type') == 'application/json':
         return response(
-            {'error': "Unsupported Media Type: must be 'application/json'"}, 415)
+            {'error': "Unsupported Media Type: must be 'application/json'"},
+            415
+        )
 
     body = json.loads(event['body'])
     print(body)
     if not all(k in body for k in ('id', 'json_url')):
         return response(
-            {'error': "Bad Request: 'id' and 'json_url' keys are required"}, 400)
+            {'error': "Bad Request: 'id' and 'json_url' keys are required"},
+            400
+        )
 
     return subscription_request(body)
+
+
+def delete_subscription(title):
+    if not dynamodb.get_item(Key={'id': title}).get('Item'):
+        return response(
+            {'error': f"Not Found: '{title}' is not "
+                      f"a subscribed software title"},
+            404
+        )
+
+    print(f"Deleting '{title}' from the database")
+    dynamodb.delete_item(Key={'id': title})
+
+    print(f"Deleting '{title}.json' from the S3 bucket")
+    s3_bucket.delete_objects(
+        Delete={
+            'Objects': [{'Key': f'{title}.json'}]
+        }
+    )
+
+    return response(
+        {'success': f"PatchServer has unsubscribed from the title '{title}'"},
+        200
+    )
 
 
 def sync_subscriptions():
@@ -126,5 +154,16 @@ def lambda_handler(event, context):
         print('Scheduled subscription sync started!')
         sync_subscriptions()
     else:
-        print('HTTP request for new subscription started!')
-        return new_subscription(event)
+        resource = event['resource']
+        parameter = event['pathParameters']
+
+        print(resource, parameter, event)
+
+        if resource == '/subscribe':
+            print('HTTP request for new subscription started!')
+            return new_subscription(event)
+        elif resource == '/unsubscribe/{title}' and parameter:
+            print('HTTP request for an unsubscribe started!')
+            return delete_subscription(parameter['title'])
+        else:
+            return response({'error': f"Bad Request: {event['path']}"}, 400)
