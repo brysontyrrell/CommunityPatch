@@ -23,12 +23,8 @@ def response(message, status_code):
     }
 
 
-def initial_subscription_request(subscription):
-    resp = requests.get(
-        subscription['json_url'],
-        headers={'Accept': 'application/json'},
-        timeout=3
-    )
+def get_subscription_json(url):
+    resp = requests.get(url, headers={'Accept': 'application/json'}, timeout=3)
 
     try:
         resp.raise_for_status()
@@ -48,6 +44,14 @@ def initial_subscription_request(subscription):
                       f"/{'/'.join([str(i) for i in error.path])}"},
             400
         )
+
+    return resp
+
+
+def subscription_request(subscription):
+    resp = get_subscription_json(subscription['json_url'])
+    if not isinstance(resp, requests.Response):
+        return resp
 
     try:
         dynamodb.put_item(
@@ -93,17 +97,34 @@ def new_subscription(event):
         return response(
             {'error': "Bad Request: 'id' and 'json_url' keys are required"}, 400)
 
-    return initial_subscription_request(body)
+    return subscription_request(body)
 
 
 def sync_subscriptions():
+    subscriptions = dynamodb.scan()
+    for item in subscriptions['Items']:
+        print(f"Downloading definition for '{item['id']}'")
+        resp = get_subscription_json(item['json_url'])
+        if not isinstance(resp, requests.Response):
+            print(f"An error occured when downloading the definition for "
+                  f"'{item['id']}'")
+            continue
 
+        print(f"Writing updated definition for '{item['id']}' to S3 bucket")
+        try:
+            s3_bucket.put_object(
+                Body=resp.text.encode(),
+                Key=f"{item['id']}.json"
+            )
+        except ClientError as error:
+            print(f"Encountered an exception syncing '{item['id']}': {error}")
+            raise
 
 
 def lambda_handler(event, context):
     if event.get('source') and event.get('detail-type') == 'Scheduled Event':
-        print('Scheduled subscription polling started!')
-        return {}
+        print('Scheduled subscription sync started!')
+        sync_subscriptions()
     else:
         print('HTTP request for new subscription started!')
         return new_subscription(event)
