@@ -37,12 +37,13 @@ Resources:
             Path: /patch/{proxy+}
             Method: get
 
-  SubscribeFunc:
+  SubscriptionFunc:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: subscribe.lambda_handler
+      Handler: subscription.lambda_handler
       Runtime: python3.6
-      CodeUri: ./SubscribeFunc
+      CodeUri: ./SubscriptionFunc
+      Timeout: 180
       Environment:
         Variables:
           S3_BUCKET: !Ref Bucket
@@ -51,7 +52,9 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - dynamodb:PutItem
+             - dynamodb:GetItem
+             - dynamodb:PutItem
+             - dynamodb:Scan
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}'
           - Effect: Allow
             Action: s3:PutObject
@@ -62,6 +65,10 @@ Resources:
           Properties:
             Path: /subscribe
             Method: post
+        SyncTimer:
+          Type: Schedule
+          Properties:
+            Schedule: rate(5 minutes)
 
   Bucket:
     Type: AWS::S3::Bucket

@@ -3,10 +3,14 @@ import os
 
 import boto3
 from botocore.exceptions import ClientError
+from jsonschema import validate, ValidationError
 import requests
 
 dynamodb = boto3.resource('dynamodb').Table(os.environ['TABLE_NAME'])
 s3_bucket = boto3.resource('s3').Bucket(os.environ['S3_BUCKET'])
+
+with open('schema_full_definition.json', 'r') as f_obj:
+    definition_schema = json.load(f_obj)
 
 
 def response(message, status_code):
@@ -20,7 +24,7 @@ def response(message, status_code):
 
 
 def initial_subscription_request(subscription):
-    resp = requests.get(subscription['json_url'], headers={'Accept': 'application/json'})
+    resp = requests.get(subscription['json_url'], headers={'Accept': 'application/json'}, timeout=3)
 
     try:
         resp.raise_for_status()
@@ -28,7 +32,13 @@ def initial_subscription_request(subscription):
     except requests.HTTPError as error:
         return response({'error': error}, 400)
     except json.JSONDecodeError:
-        return response({'error': f'Bad Request: URL did not return JSON content'}, 400)
+        return response({'error': 'Bad Request: Subscription URL did not return JSON content'}, 400)
+
+    try:
+        validate(resp.json(), definition_schema)
+    except ValidationError as error:
+        return response({'error': f"Validation Error on Subscription URL JSON: "
+                                  f"{error.message} for item: /{'/'.join([str(i) for i in error.path])}"}, 400)
 
     try:
         dynamodb.put_item(
@@ -53,7 +63,7 @@ def initial_subscription_request(subscription):
         {'success': f"PatchServer has subscribed to title '{subscription['id']}' at {subscription['json_url']}"}, 201)
 
 
-def lambda_handler(event, context):
+def new_subscription(event):
     if not event['headers'].get('Content-Type') == 'application/json':
         return response({'error': "Unsupported Media Type: must be 'application/json'"}, 415)
 
@@ -63,3 +73,12 @@ def lambda_handler(event, context):
         return response({'error': "Bad Request: 'id' and 'json_url' keys are required"}, 400)
 
     return initial_subscription_request(body)
+
+
+def lambda_handler(event, context):
+    if event.get('source') and event.get('detail-type') == 'Scheduled Event':
+        print('Scheduled subscription polling started!')
+        return {}
+    else:
+        print('HTTP request for new subscription started!')
+        return new_subscription(event)
