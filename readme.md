@@ -74,7 +74,7 @@ Using the AWS CLI, package the application for `CloudFormation`:
 $ aws cloudformation package --template-file template.yaml --s3-bucket <Your-S3-Bucket> --output-template-file deployment.yaml
 ```
 
-> If the S3 bucket specified for `aws cloudformation package` does not exist it will be created.
+> If the S3 bucket specified for `aws cloudformation package` does not exist, you can create it from the CLI with the following command: `aws s3 mb s3://<Your-S3-Bucket>`
 
 Use the created `deployment.yaml` file to create the application in `CloudFormation` (you can change the `--stack-name` value to whatever you prefer):
 
