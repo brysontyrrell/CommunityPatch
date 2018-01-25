@@ -49,7 +49,11 @@ def software():
             path = os.path.join(tempdir, title.key)
             s3_bucket.download_file(title.key, path)
         except ClientError:
-            return response({'error': f'Internal Server Error: Unable to load data for: {title.key}'}, 500)
+            return response(
+                {'error': f'Internal Server Error: '
+                          f'Unable to load data for: {title.key}'},
+                500
+            )
 
     return response(title_list(), 200)
 
@@ -66,7 +70,8 @@ def select_software(titles):
                 path = os.path.join(tempdir, title.key)
                 s3_bucket.download_file(title.key, path)
             except ClientError:
-                return response({'error': f'Title Not Found: {title_name}'}, 404)
+                return response(
+                    {'error': f'Title Not Found: {title_name}'}, 404)
 
     return response(title_list(), 200)
 
