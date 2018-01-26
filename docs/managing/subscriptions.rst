@@ -6,9 +6,7 @@ How to subscribe to someone else's patch definition.
 Subscribe to a Patch Definition
 -------------------------------
 
-To subscribe to the URL of a patch definition, make a POST request to the `/subscribe` endpoint with a JSON payload containing the software title ID ('`id'`) and the URL to the JSON file (`'json_url'`):
-
-.. code-block:: http
+To subscribe to the URL of a patch definition, make a POST request to the `/subscribe` endpoint with a JSON payload containing the software title ID ('`id'`) and the URL to the JSON file (`'json_url'`)::
 
     POST https://<patch-server-url>/subscribe
     Content-Type: application/json
@@ -30,9 +28,7 @@ Every five (5) minutes, the Patch Server will sync all subscribed patch definiti
 Unsubscribe from a Patch Definition
 -----------------------------------
 
-To unsubscribe from a patch definition, make a POST request to the `/unsubscribe` endpoint with the name of the software title:
-
-.. code-block:: http
+To unsubscribe from a patch definition, make a POST request to the `/unsubscribe` endpoint with the name of the software title::
 
     POST https://<patch-server-url>/unsubscribe/<patch-title-name>
 
