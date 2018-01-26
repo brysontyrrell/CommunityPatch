@@ -78,6 +78,45 @@ Resources:
           Properties:
             Schedule: rate(5 minutes)
 
+  RestApiFunc:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: rest_api.lambda_handler
+      Runtime: python3.6
+      CodeUri: ./RestApiFunc
+      Timeout: 10
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref Bucket
+          TABLE_NAME: !Ref DynamoDBTable
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action:
+             - dynamodb:GetItem
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}'
+          - Effect: Allow
+            Action:
+             - s3:GetObject
+             - s3:PutObject
+            Resource: !Sub 'arn:aws:s3:::${Bucket}/*'
+      Events:
+        PostDefinition:
+          Type: Api
+          Properties:
+            Path: /api/title
+            Method: post
+        PutDefinition:
+          Type: Api
+          Properties:
+            Path: /api/title/{title}
+            Method: put
+        PostVersion:
+          Type: Api
+          Properties:
+            Path: /api/title/{title}/version
+            Method: post
+
   Bucket:
     Type: AWS::S3::Bucket
 
