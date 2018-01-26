@@ -111,7 +111,37 @@ def put_definition(title, data):
     - Return 200
 
     """
-    return response({'success': 'POST /api/title/{title} invoked'}, 200)
+    validation = validate_definition(data)
+    if validation:
+        return validation
+
+    is_subscription = check_if_subscription(title)
+    if is_subscription:
+        return is_subscription
+
+    if not check_if_title_exists(title):
+        return response(
+            {'error': 'Not Found: The patch definition does not exist'}, 404)
+
+    if title != data['id']:
+        return response(
+            {'error': f"Conflict: The software title ID '{title}' does not "
+                      f"match the patch definition ID '{data['id']}'"},
+            409
+        )
+
+    try:
+        s3_bucket.put_object(
+            Body=json.dumps(data),
+            Key=f"{title}.json"
+        )
+    except ClientError as error:
+        return response({'error': f'Internal Server Error: {error}'}, 500)
+
+    return response(
+        {'success': f"Successfully updated patch definition for '{title}'"},
+        200
+    )
 
 
 def post_version(title, data):
