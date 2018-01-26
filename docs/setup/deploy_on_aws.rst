@@ -6,16 +6,16 @@ How to deploy the patch server in your AWS account.
 Prerequisites
 -------------
 
-You will need the AWS command line utility to deploy a copy of this application to your AWS account. You can get instructions for [installing the awscli here](https://docs.aws.amazon.com/cli/latest/userguide/installing.html).
+You will need the AWS command line utility to deploy a copy of this application to your AWS account. You can get instructions for `installing the awscli here <https://docs.aws.amazon.com/cli/latest/userguide/installing.html>`_.
 
-Your AWS `IAM User` will require permissions for creating resources in your AWS account including:
+Your AWS ``IAM User`` will require permissions for creating resources in your AWS account including:
 
 * API Gateway
 * Lambda Functions
 * S3 Buckets
 * IAM Roles/Permissions
 
-Here is an example `IAM Policy` you can use for your `IAM User`:
+Here is an example ``IAM Policy`` you can use for your ``IAM User``:
 
 .. code-block:: json
 
@@ -68,13 +68,13 @@ Here is an example `IAM Policy` you can use for your `IAM User`:
 Deploy the Patch Server
 -----------------------
 
-Clone this repo to your computer and go to it in your `Terminal`.
+Clone this repo to your computer and go to it in your ``Terminal``.
 
 .. code-block:: bash
 
     $ cd /path/to/StupidSimplePatchServer
 
-Using the AWS CLI, package the application for `CloudFormation`:
+Using the AWS CLI, package the application for ``CloudFormation``:
 
 .. code-block:: bash
 
@@ -83,9 +83,9 @@ Using the AWS CLI, package the application for `CloudFormation`:
 
 .. note::
 
-    If the S3 bucket specified for `aws cloudformation package` does not exist, you can create it from the CLI with the following command: `aws s3 mb s3://<Your-S3-Bucket>`
+    If the S3 bucket specified for ``aws cloudformation package`` does not exist, you can create it from the CLI with the following command: ``aws s3 mb s3://<Your-S3-Bucket>``
 
-Use the created `deployment.yaml` file to create the application in `CloudFormation` (you can change the `--stack-name` value to whatever you prefer):
+Use the created ``deployment.yaml`` file to create the application in ``CloudFormation`` (you can change the ``--stack-name`` value to whatever you prefer):
 
 .. code-block:: bash
 
@@ -101,15 +101,15 @@ You should see the following output on your screen::
 Access Your Patch Server
 ------------------------
 
-Once complete, go to the `AWS Console` in your browser and go to the `CloudFormation` page (be sure you are in the correct region).
+Once complete, go to the ``AWS Console`` in your browser and go to the ``CloudFormation`` page (be sure you are in the correct region).
 
-You should see in the list the stack name used in the `deploy` command. Select it and click on the `Resources` tab. This will show you all of the resources that were created for the application.
+You should see in the list the stack name used in the ``deploy`` command. Select it and click on the ``Resources`` tab. This will show you all of the resources that were created for the application.
 
-To get the URL for your Patch Server, go to the `API Gateway` page in the `AWS Console`.
+To get the URL for your Patch Server, go to the ``API Gateway`` page in the ``AWS Console``.
 
-Select the Patch Server (it will have the same name as the stack), go to `Stages` in the sidebar, and click on `Prod`. You should see a URL string similar to this::
+Select the Patch Server (it will have the same name as the stack), go to ``Stages`` in the sidebar, and click on ``Prod``. You should see a URL string similar to this::
 
-    **https://`<API-GATEWAY-ID>`.execute-api.`<REGION>`.amazonaws.com/Prod**
+    **https://<API-GATEWAY-ID>.execute-api.<REGION>.amazonaws.com/Prod**
 
 About AWS Costs
 ---------------

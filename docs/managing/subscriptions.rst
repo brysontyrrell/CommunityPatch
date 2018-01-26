@@ -6,11 +6,17 @@ How to subscribe to someone else's patch definition.
 Subscribe to a Patch Definition
 -------------------------------
 
-To subscribe to the URL of a patch definition, make a POST request to the `/subscribe` endpoint with a JSON payload containing the software title ID ('`id'`) and the URL to the JSON file (`'json_url'`)::
+To subscribe to the URL of a patch definition, make a POST request to the ``/subscribe`` endpoint with a JSON payload containing the software title ID (``'id'``) and the URL to the JSON file (``'json_url'``)::
 
     POST https://<patch-server-url>/subscribe
     Content-Type: application/json
     Body: {"id": "<patch-title-name>", "json_url": "<url-to-JSON-file>"}
+
+Successful response::
+
+    Status Code: 201
+    Content-Type: application/json
+    Body: {"success": ""PatchServer has subscribed to title '<patch-title-name>' at <url-to-JSON-file>"}
 
 .. note::
 
@@ -33,3 +39,9 @@ To unsubscribe from a patch definition, make a POST request to the `/unsubscribe
     POST https://<patch-server-url>/unsubscribe/<patch-title-name>
 
 This will remove the patch definition from syncing and delete the patch definition file from the S3 bucket.
+
+Successful response::
+
+    Status Code: 200
+    Content-Type: application/json
+    Body: {"success": "PatchServer has unsubscribed from the title '<patch-title-name>'"}

@@ -79,7 +79,7 @@ def subscription_request(subscription):
     except ClientError as error:
         return response({'error': f'Internal Server Error: {error}'}, 500)
 
-    return  response(
+    return response(
         {'success': f"PatchServer has subscribed to title "
                     f"'{subscription['id']}' at {subscription['json_url']}"},
         201
@@ -156,8 +156,6 @@ def lambda_handler(event, context):
     else:
         resource = event['resource']
         parameter = event['pathParameters']
-
-        print(resource, parameter, event)
 
         if resource == '/subscribe':
             print('HTTP request for new subscription started!')
