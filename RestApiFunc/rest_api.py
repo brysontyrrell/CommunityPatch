@@ -25,9 +25,22 @@ def response(message, status_code):
     }
 
 
+def validate_definition(data, use_version=False):
+    try:
+        validate(data, version_schema if use_version else definition_schema)
+    except ValidationError as error:
+        return response(
+            {'error': f"Validation Error in submitted JSON : {error.message} "
+                      f"for path: /{'/'.join([str(i) for i in error.path])}"},
+            400
+        )
+
+    return None
+
+
 def check_if_title_exists(title):
     try:
-        s3_bucket.Object(title).metadata
+        s3_bucket.Object(f'{title}.json').metadata
     except ClientError:
         return False
 
@@ -52,41 +65,47 @@ def check_if_subscription(title):
     return None
 
 
-def validate_definition(data, use_version=False):
-    try:
-        validate(data, version_schema if use_version else definition_schema)
-    except ValidationError as error:
-        return response(
-            {'error': f"Validation Error on submitted JSON: {error.message} "
-                      f"for item: /{'/'.join([str(i) for i in error.path])}"},
-            400
-        )
-
-    return None
-
-
 def post_definition(data):
     """
-    - Check if title exists
-        - Return 409 if it does
-    - Check if title is a subscription
-        - Return 400 if it is
     - Validate JSON
         - Return 400 if invalid
+    - Check if title exists
+        - Return 409 if it does
     - Return 201
 
     """
-    return response({'success': 'POST /api/title invoked'}, 201)
+    validation = validate_definition(data)
+    if validation:
+        return validation
+
+    title = data['id']
+
+    if check_if_title_exists(title):
+        return response(
+            {'error': 'Conflict: The patch definition already exists'}, 409)
+
+    try:
+        s3_bucket.put_object(
+            Body=json.dumps(data),
+            Key=f"{title}.json"
+        )
+    except ClientError as error:
+        return response({'error': f'Internal Server Error: {error}'}, 500)
+
+    return response(
+        {'success': f"Successfully created patch definition for '{title}'"},
+        201
+    )
 
 
 def put_definition(title, data):
     """
-    - Check if title exists
-        - Return 404 if not found
-    - Check if title is a subscription
-        - Return 400 if it is
     - Validate JSON
         - Return 400 if invalid
+    - Check if title is a subscription
+        - Return 400 if it is
+    - Check if title exists
+        - Return 404 if not found
     - Verify title in URL and in definition
         - Return 409 if mismatched
     - Return 200
@@ -97,12 +116,12 @@ def put_definition(title, data):
 
 def post_version(title, data):
     """
+    - Validate JSON
+        - Return 400 if invalid
     - Check if title exists
         - Return 404 if not found
     - Check if title is a subscription
         - Return 400 if it is
-    - Validate JSON
-        - Return 400 if invalid
     - Check if version exists
         - Return 400 if it does
     - Return 201
@@ -120,18 +139,20 @@ def lambda_handler(event, context):
             not event['headers'].get('Content-Type') == 'application/json':
         return response({'error': 'JSON payload required'}, 400)
 
+    body = json.loads(event['body'])
+
     if resource == '/api/title' and method == 'POST':
         print('HTTP request for a new definition POST started!')
-        return post_definition(event['body'])
+        return post_definition(body)
 
     elif resource == '/api/title/{title}' and method == 'PUT' and parameter:
         print('HTTP request for a definition PUT started!')
-        return put_definition(parameter['title'], event['body'])
+        return put_definition(parameter['title'], body)
 
     elif resource == '/api/title/{title}/version' and \
             method == 'POST' and parameter:
         print('HTTP request for a version POST started!')
-        return post_version(parameter['title'], event['body'])
+        return post_version(parameter['title'], body)
 
     else:
         return response({'error': f"Bad Request: {event['path']}"}, 400)
