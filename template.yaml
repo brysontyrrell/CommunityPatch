@@ -21,11 +21,65 @@ Resources:
             Action: s3:GetObject
             Resource: !Sub 'arn:aws:s3:::${Bucket}/*'
       Events:
-        GetApi:
+        Software:
           Type: Api
           Properties:
-            Path: /{proxy+}
+            Path: /software
             Method: get
+        SoftwareTitles:
+          Type: Api
+          Properties:
+            Path: /software/{proxy+}
+            Method: get
+        PatchTitle:
+          Type: Api
+          Properties:
+            Path: /patch/{proxy+}
+            Method: get
+
+  SubscriptionFunc:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: subscription.lambda_handler
+      Runtime: python3.6
+      CodeUri: ./SubscriptionFunc
+      Timeout: 180
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref Bucket
+          TABLE_NAME: !Ref DynamoDBTable
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action:
+             - dynamodb:DeleteItem
+             - dynamodb:GetItem
+             - dynamodb:PutItem
+             - dynamodb:Scan
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}'
+          - Effect: Allow
+            Action:
+             - s3:DeleteObject
+             - s3:PutObject
+            Resource: !Sub 'arn:aws:s3:::${Bucket}/*'
+      Events:
+        Subscribe:
+          Type: Api
+          Properties:
+            Path: /subscribe
+            Method: post
+        UnSubscribe:
+          Type: Api
+          Properties:
+            Path: /unsubscribe/{title}
+            Method: post
+        SyncTimer:
+          Type: Schedule
+          Properties:
+            Schedule: rate(5 minutes)
 
   Bucket:
     Type: AWS::S3::Bucket
+
+  DynamoDBTable:
+    Type: AWS::Serverless::SimpleTable
