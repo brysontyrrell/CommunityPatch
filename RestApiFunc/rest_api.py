@@ -1,5 +1,8 @@
+from datetime import datetime
 import json
 import os
+import shutil
+import tempfile
 
 import boto3
 from botocore.exceptions import ClientError
@@ -7,6 +10,7 @@ from jsonschema import validate, ValidationError
 
 dynamodb = boto3.resource('dynamodb').Table(os.environ['TABLE_NAME'])
 s3_bucket = boto3.resource('s3').Bucket(os.environ['S3_BUCKET'])
+tempdir = ''
 
 with open('schema_full_definition.json', 'r') as f_obj:
     definition_schema = json.load(f_obj)
@@ -17,6 +21,9 @@ with open('schema_version.json', 'r') as f_obj:
 
 def response(message, status_code):
     print(message)
+    if os.path.exists(tempdir):
+        shutil.rmtree(tempdir)
+
     return {
         'isBase64Encoded': False,
         'statusCode': status_code,
@@ -148,16 +155,66 @@ def post_version(title, data):
     """
     - Validate JSON
         - Return 400 if invalid
-    - Check if title exists
-        - Return 404 if not found
     - Check if title is a subscription
         - Return 400 if it is
+    - Check if title exists
+        - Return 404 if not found
     - Check if version exists
         - Return 400 if it does
     - Return 201
 
     """
-    return response({'success': 'POST /api/title/{}/version invoked'}, 201)
+    validation = validate_definition(data, use_version=True)
+    if validation:
+        return validation
+
+    is_subscription = check_if_subscription(title)
+    if is_subscription:
+        return is_subscription
+
+    if not check_if_title_exists(title):
+        return response(
+            {'error': 'Not Found: The patch definition does not exist'}, 404)
+
+    global tempdir
+    tempdir = tempfile.mkdtemp()
+    key = f'{title}.json'
+
+    try:
+        path = os.path.join(tempdir, key)
+        s3_bucket.download_file(key, path)
+    except ClientError:
+        return response(
+            {'error': f'Internal Server Error: '
+                      f'Unable to load data for: {key}'},
+            500
+        )
+
+    with open(os.path.join(path), 'r') as f_obj:
+        patch_definition = json.load(f_obj)
+
+    if data['version'] in [i['version'] for i in patch_definition['patches']]:
+        return response(
+            {'error': f"Bad Request: The version '{data['version']}' already "
+                      f"exists in the patch definition"},
+            409
+        )
+
+    patch_definition['patches'].insert(0, data)
+    patch_definition['lastModified'] = \
+        datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+    patch_definition['currentVersion'] = data['version']
+
+    try:
+        s3_bucket.put_object(Body=json.dumps(patch_definition), Key=key)
+    except ClientError as error:
+        return response({'error': f'Internal Server Error: {error}'}, 500)
+
+    return response(
+        {'success': f"Successfully updated the version for patch definition "
+                    f"'{title}'"},
+        201
+    )
 
 
 def lambda_handler(event, context):
