@@ -12,6 +12,12 @@ To subscribe to the URL of a patch definition, make a POST request to the `/subs
     Content-Type: application/json
     Body: {"id": "<patch-title-name>", "json_url": "<url-to-JSON-file>"}
 
+Successful response::
+
+    Status Code: 201
+    Content-Type: application/json
+    Body: {"success": ""PatchServer has subscribed to title '<patch-title-name>' at <url-to-JSON-file>"}
+
 .. note::
 
     The Patch Server performs validations on all patch definitions it retrieves. If the validation fails, the subscription request will be rejected.
@@ -33,3 +39,9 @@ To unsubscribe from a patch definition, make a POST request to the `/unsubscribe
     POST https://<patch-server-url>/unsubscribe/<patch-title-name>
 
 This will remove the patch definition from syncing and delete the patch definition file from the S3 bucket.
+
+Successful response::
+
+    Status Code: 200
+    Content-Type: application/json
+    Body: {"success": "PatchServer has unsubscribed from the title '<patch-title-name>'"}
