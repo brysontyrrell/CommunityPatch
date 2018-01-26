@@ -79,8 +79,9 @@ Resources:
             Schedule: rate(5 minutes)
 
   RestApiFunc:
+    Type: AWS::Serverless::Function
     Properties:
-      Handler: subscription.lambda_handler
+      Handler: rest_api.lambda_handler
       Runtime: python3.6
       CodeUri: ./RestApiFunc
       Timeout: 10
