@@ -8,7 +8,7 @@ Stupid Simple Patch Server
 
 The Supid Simple Patch Server (SSPS) is a serverless application to provide a patch server for Jamf Pro administrators.
 
-With the SSPS you can host your own software title patch definitions for custom patch policies. The SSPS also allows you to :doc:`subscribe to other administrators' patch definitions </managing/subscriptions>` and automate the management of your patch definitions using it's :doc:`REST API </documentation/rest_api>`.
+With the SSPS you can host your own software title patch definitions for custom patch policies. The SSPS also allows you to :doc:`subscribe to other administrators' patch definitions </managing/subscriptions_api>` and automate the management of your patch definitions using it's :doc:`REST API </managing/patch_def_api>`.
 
 .. toctree::
    :maxdepth: 1
@@ -22,11 +22,11 @@ With the SSPS you can host your own software title patch definitions for custom 
    :caption: Managing Your Patch Server
 
    managing/manage_definitions
-   managing/subscriptions
+   managing/subscriptions_api
+   managing/patch_def_api
 
 .. toctree::
    :maxdepth: 1
-   :caption: API Documentation
+   :caption: Documentation
 
-   documentation/patch_endpoints
-   documentation/rest_api
+   documentation/jamf_pro_title_api

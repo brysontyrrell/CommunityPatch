@@ -14,7 +14,7 @@ To make patch titles available on your Patch Server, upload the JSON file of the
 
 .. warning::
 
-    Manually managing your patch definitions requires you to validate the JSON of the patch definitions on your own before uploading the files. It is recommended to use the :doc:`REST API </documentation/rest_api>` for managing your patch definition files as it will perform JSON schema validation on all requests.
+    Manually managing your patch definitions requires you to validate the JSON of the patch definitions on your own before uploading the files. It is recommended to use the :doc:`REST API </managing/patch_def_api>` for managing your patch definition files as it will perform JSON schema validation on all requests.
 
 Examples taken from Jamf's official patch server would be saved to the S3 bucket as::
 

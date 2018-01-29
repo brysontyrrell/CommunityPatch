@@ -24,17 +24,17 @@ Resources:
         Software:
           Type: Api
           Properties:
-            Path: /software
+            Path: /jamf/v1/software
             Method: get
         SoftwareTitles:
           Type: Api
           Properties:
-            Path: /software/{proxy+}
+            Path: /jamf/v1/software/{proxy+}
             Method: get
         PatchTitle:
           Type: Api
           Properties:
-            Path: /patch/{proxy+}
+            Path: /jamf/v1/patch/{proxy+}
             Method: get
 
   SubscriptionFunc:
@@ -66,12 +66,12 @@ Resources:
         Subscribe:
           Type: Api
           Properties:
-            Path: /subscribe
+            Path: /subscription/subscribe
             Method: post
         UnSubscribe:
           Type: Api
           Properties:
-            Path: /unsubscribe/{title}
+            Path: /subscription/unsubscribe/{title}
             Method: post
         SyncTimer:
           Type: Schedule
@@ -104,17 +104,17 @@ Resources:
         PostDefinition:
           Type: Api
           Properties:
-            Path: /api/title
+            Path: /title
             Method: post
         PutDefinition:
           Type: Api
           Properties:
-            Path: /api/title/{title}
+            Path: /title/{title}
             Method: put
         PostVersion:
           Type: Api
           Properties:
-            Path: /api/title/{title}/version
+            Path: /title/{title}/version
             Method: post
 
   Bucket:
