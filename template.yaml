@@ -8,7 +8,7 @@ Resources:
     Properties:
       Handler: patch_server.lambda_handler
       Runtime: python3.6
-      CodeUri: ./PatchServerFunc
+      CodeUri: ./src/PatchServerFunc
       Environment:
         Variables:
           S3_BUCKET: !Ref Bucket
@@ -42,7 +42,7 @@ Resources:
     Properties:
       Handler: subscription.lambda_handler
       Runtime: python3.6
-      CodeUri: ./SubscriptionFunc
+      CodeUri: ./src/SubscriptionFunc
       Timeout: 180
       Environment:
         Variables:
@@ -83,7 +83,7 @@ Resources:
     Properties:
       Handler: rest_api.lambda_handler
       Runtime: python3.6
-      CodeUri: ./RestApiFunc
+      CodeUri: ./src/RestApiFunc
       Timeout: 10
       Environment:
         Variables:
