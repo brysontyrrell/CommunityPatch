@@ -47,7 +47,7 @@ Resources:
       Environment:
         Variables:
           S3_BUCKET: !Ref Bucket
-          TABLE_NAME: !Ref DynamoDBTable
+          TABLE_NAME: !Ref SubscriptionsTable
       Policies:
         Statement:
           - Effect: Allow
@@ -56,7 +56,7 @@ Resources:
              - dynamodb:GetItem
              - dynamodb:PutItem
              - dynamodb:Scan
-            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}'
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${SubscriptionsTable}'
           - Effect: Allow
             Action:
              - s3:DeleteObject
@@ -88,13 +88,12 @@ Resources:
       Environment:
         Variables:
           S3_BUCKET: !Ref Bucket
-          TABLE_NAME: !Ref DynamoDBTable
+          TABLE_NAME: !Ref SubscriptionsTable
       Policies:
         Statement:
           - Effect: Allow
-            Action:
-             - dynamodb:GetItem
-            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}'
+            Action: dynamodb:GetItem
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${SubscriptionsTable}'
           - Effect: Allow
             Action:
              - s3:GetObject
@@ -117,8 +116,56 @@ Resources:
             Path: /title/{title}/version
             Method: post
 
+  AccountsFunc:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: signup.lambda_handler
+      Runtime: python3.6
+      CodeUri: ./src/AccountsFunc
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref AccountsTable
+          API_SECRET_KEY: !Ref ApiSecretKey
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action:
+             - dynamodb:DeleteItem
+             - dynamodb:GetItem
+             - dynamodb:PutItem
+             - dynamodb:Scan
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AccountsTable}'
+          - Effect: Allow
+            Action: ses:SendEmail
+            Resource: '*',
+            Condition:
+              StringEquals:
+                ses:FromAddress: 'noreply@communitypatch.com'
+      Events:
+        NewAccount:
+          Type: Api
+          Properties:
+            Path: /accounts
+            Method: post
+        ActivateAccount:
+          Type: Api
+          Properties:
+            Path: /accounts/activate
+            Method: get
+
   Bucket:
     Type: AWS::S3::Bucket
 
-  DynamoDBTable:
+  AccountsTable:
     Type: AWS::Serverless::SimpleTable
+    PrimaryKey:
+      Name: id
+      Type: String
+
+  SubscriptionsTable:
+    Type: AWS::Serverless::SimpleTable
+
+Parameters:
+  ApiSecretKey:
+    Type: String
+    Description: The parameter name for the encrypted API Secret Key.
