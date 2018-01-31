@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 Description: A serverless Patch Server for Jamf Pro using AWS.
 
@@ -9,17 +9,18 @@ Resources:
       Handler: patch_server.lambda_handler
       Runtime: python3.6
       CodeUri: ./src/PatchServerFunc
+      Timeout: 15
       Environment:
         Variables:
-          S3_BUCKET: !Ref Bucket
+          S3_BUCKET: !Ref PatchDefinitionsBucket
       Policies:
         Statement:
           - Effect: Allow
             Action: s3:ListBucket
-            Resource: !Sub 'arn:aws:s3:::${Bucket}'
+            Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}'
           - Effect: Allow
             Action: s3:GetObject
-            Resource: !Sub 'arn:aws:s3:::${Bucket}/*'
+            Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
       Events:
         Software:
           Type: Api
@@ -46,7 +47,7 @@ Resources:
       Timeout: 180
       Environment:
         Variables:
-          S3_BUCKET: !Ref Bucket
+          S3_BUCKET: !Ref PatchDefinitionsBucket
           TABLE_NAME: !Ref SubscriptionsTable
       Policies:
         Statement:
@@ -61,7 +62,7 @@ Resources:
             Action:
              - s3:DeleteObject
              - s3:PutObject
-            Resource: !Sub 'arn:aws:s3:::${Bucket}/*'
+            Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
       Events:
         Subscribe:
           Type: Api
@@ -87,7 +88,7 @@ Resources:
       Timeout: 10
       Environment:
         Variables:
-          S3_BUCKET: !Ref Bucket
+          S3_BUCKET: !Ref PatchDefinitionsBucket
           TABLE_NAME: !Ref SubscriptionsTable
       Policies:
         Statement:
@@ -98,7 +99,7 @@ Resources:
             Action:
              - s3:GetObject
              - s3:PutObject
-            Resource: !Sub 'arn:aws:s3:::${Bucket}/*'
+            Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
       Events:
         PostDefinition:
           Type: Api
@@ -129,6 +130,12 @@ Resources:
       Policies:
         Statement:
           - Effect: Allow
+            Action: ssm:GetParameters
+            Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApiSecretKey}'
+          - Effect: Allow
+            Action: kms:Decrypt
+            Resource: !Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${KmsKeyId}'
+          - Effect: Allow
             Action:
              - dynamodb:DeleteItem
              - dynamodb:GetItem
@@ -137,7 +144,7 @@ Resources:
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AccountsTable}'
           - Effect: Allow
             Action: ses:SendEmail
-            Resource: '*',
+            Resource: '*'
             Condition:
               StringEquals:
                 ses:FromAddress: 'noreply@communitypatch.com'
@@ -153,7 +160,7 @@ Resources:
             Path: /accounts/activate
             Method: get
 
-  Bucket:
+  PatchDefinitionsBucket:
     Type: AWS::S3::Bucket
 
   AccountsTable:
@@ -162,6 +169,9 @@ Resources:
       Name: id
       Type: String
 
+  TokenBlacklistTable:
+    Type: AWS::Serverless::SimpleTable
+
   SubscriptionsTable:
     Type: AWS::Serverless::SimpleTable
 
@@ -169,3 +179,7 @@ Parameters:
   ApiSecretKey:
     Type: String
     Description: The parameter name for the encrypted API Secret Key.
+
+  KmsKeyId:
+    Type: String
+    Description: The KMS key ID for this deployment.
