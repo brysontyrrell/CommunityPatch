@@ -20,14 +20,14 @@
     },
     "appName": {
       "$id": "/properties/appName",
-      "type": "string",
+      "type": ["string", "null"],
       "examples": [
         "Composer.app"
       ]
     },
     "bundleId": {
       "$id": "/properties/bundleId",
-      "type": "string",
+      "type": ["string", "null"],
       "examples": [
         "com.jamfsoftware.Composer"
       ]
