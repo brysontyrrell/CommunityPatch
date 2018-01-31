@@ -9,6 +9,18 @@ from botocore.exceptions import ClientError
 s3_bucket = boto3.resource('s3').Bucket(os.environ['S3_BUCKET'])
 tempdir = ''
 
+# Downloading files from S3 is time consuming. ~40 patch definitions that need
+# to be loaded range from 4-5 seconds for the entire request. There are a few
+# options for bringing this response time down:
+#
+#  - Increase function memory: 128->256 cuts time down by nearly %50, but
+#    will consume more GB-seconds.
+#  - Implement parallel downloading: local processing of files is quick. The
+#    longest execution comes from downloading from S3. Writing in parallel
+#    downloads will yield faster responses.
+#  - Drop S3, move definitions to DynamoDB: the nuclear solution, but will
+#    likely yield the fastest speeds.
+
 
 def response(message, status_code):
     print(message)
@@ -97,11 +109,11 @@ def lambda_handler(event, context):
     resource = event['resource']
     parameter = event['pathParameters']
 
-    if resource == '/software':
+    if resource == '/jamf/v1/software':
         return software()
-    elif resource == '/software/{proxy+}' and parameter:
+    elif resource == '/jamf/v1/software/{proxy+}' and parameter:
         return select_software(parameter['proxy'].split(','))
-    elif resource == '/patch/{proxy+}' and parameter:
+    elif resource == '/jamf/v1/patch/{proxy+}' and parameter:
         return patch_title(parameter['proxy'])
     else:
         return response({'error': f"Bad Request: {event['path']}"}, 400)

@@ -228,15 +228,15 @@ def lambda_handler(event, context):
 
     body = json.loads(event['body'])
 
-    if resource == '/api/title' and method == 'POST':
+    if resource == '/title' and method == 'POST':
         print('HTTP request for a new definition POST started!')
         return post_definition(body)
 
-    elif resource == '/api/title/{title}' and method == 'PUT' and parameter:
+    elif resource == '/title/{title}' and method == 'PUT' and parameter:
         print('HTTP request for a definition PUT started!')
         return put_definition(parameter['title'], body)
 
-    elif resource == '/api/title/{title}/version' and \
+    elif resource == '/title/{title}/version' and \
             method == 'POST' and parameter:
         print('HTTP request for a version POST started!')
         return post_version(parameter['title'], body)

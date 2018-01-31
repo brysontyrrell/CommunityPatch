@@ -157,10 +157,10 @@ def lambda_handler(event, context):
         resource = event['resource']
         parameter = event['pathParameters']
 
-        if resource == '/subscribe':
+        if resource == '/subscription/subscribe':
             print('HTTP request for new subscription started!')
             return new_subscription(event)
-        elif resource == '/unsubscribe/{title}' and parameter:
+        elif resource == '/subscription/unsubscribe/{title}' and parameter:
             print('HTTP request for an unsubscribe started!')
             return delete_subscription(parameter['title'])
         else:
