@@ -2,9 +2,23 @@ AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 Description: A serverless Patch Server for Jamf Pro using AWS.
 
+Parameters:
+
+  ApiSecretKey:
+    Type: String
+    Description: The parameter name for the encrypted API Secret Key.
+
+  KmsKeyId:
+    Type: String
+    Description: The KMS key for this deployment.
+
 Resources:
+
+# Patch Server Functions
+
   PatchServerFunc:
     Type: AWS::Serverless::Function
+    Description: Handles Jamf Pro requests for patch definitions.
     Properties:
       Handler: patch_server.lambda_handler
       Runtime: python3.6
@@ -38,12 +52,15 @@ Resources:
             Path: /jamf/v1/patch/{proxy+}
             Method: get
 
-  SubscriptionFunc:
+# Subscriptions Functions
+
+  SubscriptionsFunc:
     Type: AWS::Serverless::Function
+    Description: Handles subscribe/unsubscribe requests for patch definitions. REQUIRES AUTHENTICATION!
     Properties:
-      Handler: subscription.lambda_handler
+      Handler: subscriptions.lambda_handler
       Runtime: python3.6
-      CodeUri: ./src/SubscriptionFunc
+      CodeUri: ./src/SubscriptionsFunc
       Timeout: 180
       Environment:
         Variables:
@@ -79,8 +96,27 @@ Resources:
           Properties:
             Schedule: rate(5 minutes)
 
+  SubscriptionSyncFunc:
+    Type: AWS::Serverless::Function
+    Description: Reads from the Subscriptions table and executes a sync for each account's subscriptions.
+    Properties:
+      Handler: subscription_sync.lambda_handler
+      Runtime: python3.6
+      CodeUri: ./src/SubscriptionSyncFunc
+
+  SubscriptionSyncTaskFunc:
+    Type: AWS::Serverless::Function
+    Description: Processes request for syncing subscriptions for an account.
+    Properties:
+      Handler: subscription_sync_task.lambda_handler
+      Runtime: python3.6
+      CodeUri: ./src/SubscriptionSyncTaskFunc
+
+# Rest API Functions
+
   RestApiFunc:
     Type: AWS::Serverless::Function
+    Description: Handles API requests for creating/updating/deleting patch definitions. REQUIRES AUTHENTICATION!
     Properties:
       Handler: rest_api.lambda_handler
       Runtime: python3.6
@@ -117,8 +153,11 @@ Resources:
             Path: /title/{title}/version
             Method: post
 
+# Account Management Functions
+
   AccountsFunc:
     Type: AWS::Serverless::Function
+    Description: Handles new account requests, validating new accounts, and API token generation/invalidation.
     Properties:
       Handler: signup.lambda_handler
       Runtime: python3.6
@@ -160,8 +199,22 @@ Resources:
             Path: /accounts/activate
             Method: get
 
+# Email Functions
+
+  EmailTaskFunc:
+    Type: AWS::Serverless::Function
+    Description: Reads from the Email Queue and sends messages.
+    Properties:
+      Handler: email_task.lambda_handler
+      Runtime: python3.6
+      CodeUri: ./src/EmailTaskFunc
+
+# S3 Buckets
+
   PatchDefinitionsBucket:
     Type: AWS::S3::Bucket
+
+# DynamoDB Tables
 
   AccountsTable:
     Type: AWS::Serverless::SimpleTable
@@ -175,11 +228,16 @@ Resources:
   SubscriptionsTable:
     Type: AWS::Serverless::SimpleTable
 
-Parameters:
-  ApiSecretKey:
-    Type: String
-    Description: The parameter name for the encrypted API Secret Key.
+# SQS Queues
 
-  KmsKeyId:
-    Type: String
-    Description: The KMS key ID for this deployment.
+  ErrorQueue:
+    Type: AWS::SQS::Queue
+    Description: Dead Letter Queue for registering failures within the application.
+
+  EmailQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 60
+      RedrivePolicy:
+        deadLetterTargetArn: !Sub ${ErrorQueue.Arn}
+        maxReceiveCount: 10
