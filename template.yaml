@@ -208,17 +208,17 @@ Resources:
     Environment:
         Variables:
           EMAIL_QUEUE_URL: !Ref EmailQueue
-      Policies:
-        Statement:
-          - Effect: Allow
-            Action: sqs:ReceiveMessage
-            Resource: !Sub ${EmailQueue.Arn}
-          - Effect: Allow
-            Action: ses:SendEmail
-            Resource: '*'
-            Condition:
-              StringEquals:
-                ses:FromAddress: 'noreply@communitypatch.com'
+    Policies:
+      Statement:
+        - Effect: Allow
+          Action: sqs:ReceiveMessage
+          Resource: !Sub ${EmailQueue.Arn}
+        - Effect: Allow
+          Action: ses:SendEmail
+          Resource: '*'
+          Condition:
+            StringEquals:
+              ses:FromAddress: 'noreply@communitypatch.com'
 
 # S3 Buckets
 
