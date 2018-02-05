@@ -164,8 +164,9 @@ Resources:
       CodeUri: ./src/AccountsFunc
       Environment:
         Variables:
-          TABLE_NAME: !Ref AccountsTable
           API_SECRET_KEY: !Ref ApiSecretKey
+          EMAIL_QUEUE_URL: !Ref EmailQueue
+          TABLE_NAME: !Ref AccountsTable
       Policies:
         Statement:
           - Effect: Allow

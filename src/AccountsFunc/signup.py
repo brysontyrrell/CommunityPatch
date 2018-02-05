@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 from jsonschema import Draft4Validator, FormatChecker, ValidationError
 import jwt
 
-dynamodb = boto3.resource('dynamodb').Table(os.environ['TABLE_NAME'])
+dynamodb = boto3.resource('dynamodb').Table(os.getenv('TABLE_NAME'))
 sqs_queue = boto3.resource('sqs').Queue(os.getenv('EMAIL_QUEUE_URL'))
 ssm_client = boto3.client('ssm')
 
