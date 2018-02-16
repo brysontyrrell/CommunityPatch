@@ -8,10 +8,6 @@ Parameters:
     Type: String
     Description: The parameter name for the encrypted API Secret Key.
 
-  KmsKeyId:
-    Type: String
-    Description: The KMS key for this deployment.
-
 Resources:
 
 # Patch Server Functions
@@ -174,7 +170,7 @@ Resources:
             Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApiSecretKey}'
           - Effect: Allow
             Action: kms:Decrypt
-            Resource: !Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${KmsKeyId}'
+            Resource: !Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${CommunityPatchKey}'
           - Effect: Allow
             Action:
              - dynamodb:DeleteItem
@@ -221,10 +217,29 @@ Resources:
             StringEquals:
               ses:FromAddress: 'noreply@communitypatch.com'
 
+# Application KMS Master Key
+
+  CommunityPatchKey:
+    Type: "AWS::KMS::Key"
+    Properties:
+      KeyPolicy:
+        Effect: Allow
+        Principal:
+          AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:user/root'
+        Action:
+          - kms:*
+        Resource: "*"
+
 # S3 Buckets
 
   PatchDefinitionsBucket:
     Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              KMSMasterKeyID: !Ref CommunityPatchKey
+              SSEAlgorithm: "aws:kms"
 
 # DynamoDB Tables
 
