@@ -1,3 +1,4 @@
+import base64
 from datetime import datetime, timedelta
 import json
 import os
@@ -10,12 +11,19 @@ import jwt
 
 dynamodb = boto3.resource('dynamodb').Table(os.getenv('TABLE_NAME'))
 sqs_queue = boto3.resource('sqs').Queue(os.getenv('EMAIL_QUEUE_URL'))
-ssm_client = boto3.client('ssm')
 
-secret_key = ssm_client.get_parameter(
-    Name=os.environ['API_SECRET_KEY'],
-    WithDecryption=True
-)
+
+def get_api_secret_key():
+    ssm_client = boto3.client('ssm')
+    response = ssm_client.get_parameters(
+        Names=[os.getenv('API_SECRET_KEY')],
+        WithDecryption=True
+    )
+    for parameter in response['Parameters']:
+        return base64.b64decode(parameter['Value'])
+
+
+secret_key = get_api_secret_key()
 
 with open('register_schema.json', 'r') as f_obj:
     validator = Draft4Validator(
@@ -60,7 +68,7 @@ def new_account(body):
         return response({'error': f"Unable to read JSON content"}, 400)
 
     try:
-        validator.validate(body, format_checker=FormatChecker())
+        validator.validate(data)
     except ValidationError as error:
         return response(
             {'error': f"Validation Error on Subscription URL JSON: "
@@ -75,7 +83,7 @@ def new_account(body):
         {
             'sub': account_id.hex,
             'exp': exp_timestamp(7),
-            'type': 'activation'
+            'aud': 'activation'
         },
         secret_key,
         'HS256'
@@ -83,11 +91,13 @@ def new_account(body):
 
     url_token = '/'.join(activation_token.decode().split('.')[-2:])
 
+    # Need to add in a check to see if the account exists but the activation
+    # state is False. A new URL token should be generated in that event.
     try:
         dynamodb.put_item(
             Item={
-                'id': data['email'],
-                'account_id': account_id.bytes,
+                'id': account_id.hex,
+                'email': data['email'],
                 'account_verified': False
             },
             ConditionExpression='attribute_not_exists(id)'
@@ -102,10 +112,9 @@ def new_account(body):
             return response({'error': f'Internal Server Error: {error}'}, 500)
 
     email_payload = {
-        'Subject': 'Verify Your Patch Server Account',
+        'Subject': 'Verify Your CommunityPatch Account',
         'Recipient': data['email'],
-        'TextBody': 'Click here to verify your account '
-                    'and recieve your API token:\n'
+        'TextBody': 'Click here to verify your account:\n'
                     f'https://api.communitypatch.com/activation/{url_token}',
         'HtmlBody': ''
     }
@@ -114,29 +123,73 @@ def new_account(body):
     return response({'success': 'Account verification email sent'}, 200)
 
 
-def activate_account():
-    url_token = ''
-    activation_token = '.'.join([''] + url_token.split('/'))
-    
-    decoded = jwt.decode(activation_token, 'secret')
-    account_id = uuid.UUID(decoded['sub'])
+def activate_account(url_token):
+    activation_token = '.'.join(
+        ['eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9'] + url_token.split('/'))
 
-    dydb_update = {
-        'id': account_id.bytes,
+    try:
+        decoded_token = jwt.decode(
+            activation_token, secret_key, audience='activation')
+    except jwt.InvalidTokenError:
+        return response({'error': 'Invalid activation URL'}, 400)
+
+    print(decoded_token)
+    account_id = uuid.UUID(decoded_token['sub'])
+
+    try:
+        resp = dynamodb.get_item(
+            Key={
+                'id': account_id.hex,
+            }
+        )
+        account = resp['Item']
+    except ClientError as error:
+        if error.response['Error']['Code'] == 'ConditionalCheckFailedException':
+            return response(
+                {'error': "No account matching this activation could be found"},
+                400
+            )
+        else:
+            return response({'error': f'Internal Server Error: {error}'}, 500)
+
+    if account['account_verified']:
+        return response(
+            {'error': 'This account has already been activated'}, 400)
+
+    dynamodb.update_item = {
+        'id': account['id'],
         'account_verified': True
     }
 
-    new_api_token = jwt.encode(
+    api_token = jwt.encode(
         {
-            'kid': '',
-            'sub': account_id.hex
+            'jti': '',
+            'sub': account_id.hex,
+            'exp': exp_timestamp(365),
+            'aud': 'api',
+            'ver': 1
         },
-        'key', 'HS256'
+        secret_key,
+        'HS256'
     )
+
+    email_payload = {
+        'Subject': 'Your CommunityPatch API Token',
+        'Recipient': account['id'],
+        'TextBody': 'Your account has been activated. Use the token below to '
+                    'manage your software titles and patch definitions using '
+                    f'the API.\n/{api_token.decode()}',
+        'HtmlBody': ''
+    }
+
+    send_to_queue(email_payload)
+    return response({'success': 'Your account is activated. CHeck your inbox '
+                                'for your API token and Account ID'}, 200)
 
 
 def lambda_handler(event, context):
     resource = event['resource']
+    parameter = event['pathParameters']
     method = event['httpMethod']
 
     if resource == '/accounts/register' and method == 'POST':
@@ -147,9 +200,10 @@ def lambda_handler(event, context):
 
         return new_account(event['body'])
 
-    elif resource == '/accounts/activation/{proxy+}' and method == 'GET':
+    elif resource == '/accounts/activation/{proxy+}' \
+            and method == 'GET' and parameter:
         print('Account activation request received!')
-        # activate_account()
+        activate_account(parameter['proxy'])
         return {}
 
     else:
