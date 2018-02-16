@@ -16,13 +16,13 @@ Resources:
 
 # Patch Server Functions
 
-  PatchServerFunc:
+  PatchServer:
     Type: AWS::Serverless::Function
     Description: Handles Jamf Pro requests for patch definitions.
     Properties:
       Handler: patch_server.lambda_handler
       Runtime: python3.6
-      CodeUri: ./src/PatchServerFunc
+      CodeUri: ./src/functions/server
       Timeout: 15
       Environment:
         Variables:
@@ -54,13 +54,13 @@ Resources:
 
 # Subscriptions Functions
 
-  SubscriptionsFunc:
+  Subscriptions:
     Type: AWS::Serverless::Function
     Description: Handles subscribe/unsubscribe requests for patch definitions. REQUIRES AUTHENTICATION!
     Properties:
       Handler: subscriptions.lambda_handler
       Runtime: python3.6
-      CodeUri: ./src/SubscriptionsFunc
+      CodeUri: ./src/functions/subscriptions
       Timeout: 180
       Environment:
         Variables:
@@ -96,31 +96,31 @@ Resources:
           Properties:
             Schedule: rate(5 minutes)
 
-  SubscriptionSyncFunc:
+  SubscriptionSync:
     Type: AWS::Serverless::Function
     Description: Reads from the Subscriptions table and executes a sync for each account's subscriptions.
     Properties:
       Handler: subscription_sync.lambda_handler
       Runtime: python3.6
-      CodeUri: ./src/SubscriptionSyncFunc
+      CodeUri: ./src/functions/subscription_sync
 
-  SubscriptionSyncTaskFunc:
+  SubscriptionTask:
     Type: AWS::Serverless::Function
     Description: Processes request for syncing subscriptions for an account.
     Properties:
       Handler: subscription_sync_task.lambda_handler
       Runtime: python3.6
-      CodeUri: ./src/SubscriptionSyncTaskFunc
+      CodeUri: ./src/functions/subscription_task
 
 # Rest API Functions
 
-  RestApiFunc:
+  RestApi:
     Type: AWS::Serverless::Function
     Description: Handles API requests for creating/updating/deleting patch definitions. REQUIRES AUTHENTICATION!
     Properties:
       Handler: rest_api.lambda_handler
       Runtime: python3.6
-      CodeUri: ./src/RestApiFunc
+      CodeUri: ./src/functions/api
       Timeout: 10
       Environment:
         Variables:
@@ -155,13 +155,13 @@ Resources:
 
 # Account Management Functions
 
-  AccountsFunc:
+  Accounts:
     Type: AWS::Serverless::Function
     Description: Handles new account requests, validating new accounts, and API token generation/invalidation.
     Properties:
       Handler: signup.lambda_handler
       Runtime: python3.6
-      CodeUri: ./src/AccountsFunc
+      CodeUri: ./src/functions/accounts
       Environment:
         Variables:
           API_SECRET_KEY: !Ref ApiSecretKey
@@ -199,13 +199,13 @@ Resources:
 
 # Email Functions
 
-  EmailTaskFunc:
+  EmailTask:
     Type: AWS::Serverless::Function
     Description: Reads from the Email Queue and sends messages.
     Properties:
       Handler: email_task.lambda_handler
       Runtime: python3.6
-      CodeUri: ./src/EmailTaskFunc
+      CodeUri: ./src/functions/email
     Environment:
         Variables:
           EMAIL_QUEUE_URL: !Ref EmailQueue
