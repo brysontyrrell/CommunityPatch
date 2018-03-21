@@ -31,6 +31,10 @@ Resources:
 
   PatchDefinitionsTable:
     Type: AWS::Serverless::SimpleTable
+    Properties:
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
 
 # API Gateway
 
@@ -74,6 +78,33 @@ Resources:
                 type: aws_proxy
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RestApiNew.Arn}/invocations
+              responses: {}
+
+          "/jamf/v1/software":
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${JamfApi.Arn}/invocations
+              responses: {}
+
+          "/jamf/v1/software/{proxy+}":
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${JamfApi.Arn}/invocations
+              responses: {}
+
+          "/jamf/v1/patch/{proxy+}":
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${JamfApi.Arn}/invocations
               responses: {}
 
   ApiCustomDomain:
@@ -126,8 +157,8 @@ Resources:
       Timeout: 15
       Environment:
         Variables:
-          S3_BUCKET: !Ref PatchDefinitionsBucket
-          DYNAMODB_TABLE: !Ref PatchDefinitionsTable
+          DEFINITIONS_BUCKET: !Ref PatchDefinitionsBucket
+          DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
       Policies:
         Statement:
           - Effect: Allow
@@ -135,9 +166,9 @@ Resources:
              - dynamodb:GetItem
              - dynamodb:Scan
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
-          - Effect: Allow
-            Action: s3:ListBucket
-            Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}'
+#          - Effect: Allow
+#            Action: s3:ListBucket
+#            Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}'
           - Effect: Allow
             Action: s3:GetObject
             Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
