@@ -4,6 +4,14 @@ Description: A serverless Patch Server for Jamf Pro using AWS.
 
 Parameters:
 
+  CertificateId:
+    Type: String
+    Description: The UUID for the certificate to use for the custom domain.
+
+  DomainName:
+    Type: String
+    Description: The custom domain name for the API.
+
   EmailSenderAddress:
     Type: String
     Description: The "from" address for email notifications from this service.
@@ -67,6 +75,26 @@ Resources:
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RestApiNew.Arn}/invocations
               responses: {}
+
+  ApiCustomDomain:
+    Type: "AWS::ApiGateway::DomainName"
+    Properties:
+      RegionalCertificateArn: !Sub arn:aws:acm:${AWS::Region}:${AWS::AccountId}:certificate/${CertificateId}
+      DomainName: !Ref DomainName
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+
+  ApiBasePath:
+    Type: "AWS::ApiGateway::BasePathMapping"
+    DependsOn:
+      - ApiGateway
+      - ApiGatewayProdStage
+      - ApiCustomDomain
+    Properties:
+      DomainName: !Ref ApiCustomDomain
+      RestApiId: !Ref ApiGateway
+      Stage: Prod
 
 # Web View Function: /
 
