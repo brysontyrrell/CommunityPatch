@@ -4,27 +4,109 @@ Description: A serverless Patch Server for Jamf Pro using AWS.
 
 Parameters:
 
-  ApiSecretKey:
+  EmailSenderAddress:
     Type: String
-    Description: The parameter name for the encrypted API Secret Key.
+    Description: The "from" address for email notifications from this service.
+
+  TokenSecretKey:
+    Type: String
+    Description: The key used for generating and validating API tokens.
 
 Resources:
 
-# Patch Server Functions
+# S3 Buckets
 
-  PatchServer:
+  PatchDefinitionsBucket:
+    Type: AWS::S3::Bucket
+
+# DynamoDB Tables
+
+  PatchDefinitionsTable:
+    Type: AWS::Serverless::SimpleTable
+
+# API Gateway
+
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      DefinitionBody:
+        swagger: "2.0"
+        info:
+          title: !Ref AWS::StackName
+        paths:
+          "/":
+            get:
+              x-amazon-apigateway-integration:
+                contentHandling: "CONVERT_TO_TEXT"
+                type: aws
+                httpMethod: post
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebView.Arn}/invocations"
+                passthroughBehavior: "when_no_match"
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Content-Type: "'text/html'"
+                    responseTemplates:
+                      text/html: "$input.path('$')"
+              produces:
+                - "text/html"
+              responses:
+                "200":
+                  description: "200 response"
+                  headers:
+                    Content-Type:
+                      type: "string"
+
+          "/api/v1/title":
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RestApiNew.Arn}/invocations
+              responses: {}
+
+# Web View Function: /
+
+  WebView:
+    Type: AWS::Serverless::Function
+    Description: Renders the main web page displaying all available titles.
+    Properties:
+      Runtime: python3.6
+      Handler: web_view.lambda_handler
+      CodeUri: ./src/functions/web_view
+      Events:
+        get:
+          Type: Api
+          Properties:
+            Path: /
+            Method: get
+            RestApiId:
+                Ref: ApiGateway
+
+# Jamf Pro API: /jamf/v1
+
+  JamfApi:
     Type: AWS::Serverless::Function
     Description: Handles Jamf Pro requests for patch definitions.
     Properties:
-      Handler: patch_server.lambda_handler
       Runtime: python3.6
-      CodeUri: ./src/functions/server
+      Handler: jamf_api.lambda_handler
+      CodeUri: ./src/functions/jamf_api
       Timeout: 15
       Environment:
         Variables:
           S3_BUCKET: !Ref PatchDefinitionsBucket
+          DYNAMODB_TABLE: !Ref PatchDefinitionsTable
       Policies:
         Statement:
+          - Effect: Allow
+            Action:
+             - dynamodb:GetItem
+             - dynamodb:Scan
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
           - Effect: Allow
             Action: s3:ListBucket
             Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}'
@@ -32,239 +114,86 @@ Resources:
             Action: s3:GetObject
             Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
       Events:
-        Software:
+        JamfApi:
           Type: Api
           Properties:
-            Path: /jamf/v1/software
+            Path: /jamf/v1/{proxy+}
             Method: get
-        SoftwareTitles:
-          Type: Api
-          Properties:
-            Path: /jamf/v1/software/{proxy+}
-            Method: get
-        PatchTitle:
-          Type: Api
-          Properties:
-            Path: /jamf/v1/patch/{proxy+}
-            Method: get
+            RestApiId:
+                Ref: ApiGateway
 
-# Subscriptions Functions
 
-  Subscriptions:
+# Rest API: /api/v1
+
+  RestApiNew:
     Type: AWS::Serverless::Function
-    Description: Handles subscribe/unsubscribe requests for patch definitions. REQUIRES AUTHENTICATION!
+    Description: Handles API requests for creating software title definitions.
     Properties:
-      Handler: subscriptions.lambda_handler
       Runtime: python3.6
-      CodeUri: ./src/functions/subscriptions
-      Timeout: 180
-      Environment:
-        Variables:
-          S3_BUCKET: !Ref PatchDefinitionsBucket
-          TABLE_NAME: !Ref SubscriptionsTable
-      Policies:
-        Statement:
-          - Effect: Allow
-            Action:
-             - dynamodb:DeleteItem
-             - dynamodb:GetItem
-             - dynamodb:PutItem
-             - dynamodb:Scan
-            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${SubscriptionsTable}'
-          - Effect: Allow
-            Action:
-             - s3:DeleteObject
-             - s3:PutObject
-            Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
-      Events:
-        Subscribe:
-          Type: Api
-          Properties:
-            Path: /subscription/subscribe
-            Method: post
-        UnSubscribe:
-          Type: Api
-          Properties:
-            Path: /subscription/unsubscribe/{title}
-            Method: post
-        SyncTimer:
-          Type: Schedule
-          Properties:
-            Schedule: rate(5 minutes)
-
-  SubscriptionSync:
-    Type: AWS::Serverless::Function
-    Description: Reads from the Subscriptions table and executes a sync for each account's subscriptions.
-    Properties:
-      Handler: subscription_sync.lambda_handler
-      Runtime: python3.6
-      CodeUri: ./src/functions/subscription_sync
-
-  SubscriptionTask:
-    Type: AWS::Serverless::Function
-    Description: Processes request for syncing subscriptions for an account.
-    Properties:
-      Handler: subscription_sync_task.lambda_handler
-      Runtime: python3.6
-      CodeUri: ./src/functions/subscription_task
-
-# Rest API Functions
-
-  RestApi:
-    Type: AWS::Serverless::Function
-    Description: Handles API requests for creating/updating/deleting patch definitions. REQUIRES AUTHENTICATION!
-    Properties:
-      Handler: rest_api.lambda_handler
-      Runtime: python3.6
-      CodeUri: ./src/functions/api
+      Handler: rest_api_new.lambda_handler
+      CodeUri: ./src/functions/rest_api_new
       Timeout: 10
       Environment:
         Variables:
-          S3_BUCKET: !Ref PatchDefinitionsBucket
-          TABLE_NAME: !Ref SubscriptionsTable
+          DEFINITIONS_BUCKET: !Ref PatchDefinitionsBucket
+          DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
+          SECRET_KEY: !Ref TokenSecretKey
+          SENDER_ADDRESS: !Ref EmailSenderAddress
       Policies:
         Statement:
-          - Effect: Allow
-            Action: dynamodb:GetItem
-            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${SubscriptionsTable}'
           - Effect: Allow
             Action:
              - s3:GetObject
              - s3:PutObject
             Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
+          - Effect: Allow
+            Action:
+             - dynamodb:GetItem
+             - dynamodb:PutItem
+             - dynamodb:Scan
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
+          - Effect: Allow
+            Action: ses:SendEmail
+            Resource: '*'
+            Condition:
+              StringEquals:
+                ses:FromAddress: 'noreply@communitypatch.com'
       Events:
         PostDefinition:
           Type: Api
           Properties:
-            Path: /title
+            Path: /api/v1/title
             Method: post
-        PutDefinition:
-          Type: Api
-          Properties:
-            Path: /title/{title}
-            Method: put
-        PostVersion:
-          Type: Api
-          Properties:
-            Path: /title/{title}/version
-            Method: post
+            RestApiId:
+                Ref: ApiGateway
 
-# Account Management Functions
-
-  Accounts:
-    Type: AWS::Serverless::Function
-    Description: Handles new account requests, validating new accounts, and API token generation/invalidation.
-    Properties:
-      Handler: signup.lambda_handler
-      Runtime: python3.6
-      CodeUri: ./src/functions/accounts
-      Environment:
-        Variables:
-          API_SECRET_KEY: !Ref ApiSecretKey
-          EMAIL_QUEUE_URL: !Ref EmailQueue
-          TABLE_NAME: !Ref AccountsTable
-      Policies:
-        Statement:
-          - Effect: Allow
-            Action: ssm:GetParameters
-            Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApiSecretKey}'
-          - Effect: Allow
-            Action: kms:Decrypt
-            Resource: !Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${CommunityPatchKey}'
-          - Effect: Allow
-            Action:
-             - dynamodb:DeleteItem
-             - dynamodb:GetItem
-             - dynamodb:PutItem
-             - dynamodb:Scan
-            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AccountsTable}'
-          - Effect: Allow
-            Action: sqs:SendMessage
-            Resource: !Sub ${EmailQueue.Arn}
-      Events:
-        NewAccount:
-          Type: Api
-          Properties:
-            Path: /accounts/register
-            Method: post
-        ActivateAccount:
-          Type: Api
-          Properties:
-            Path: /accounts/activation/{proxy+}
-            Method: get
-
-# Email Functions
-
-  EmailTask:
-    Type: AWS::Serverless::Function
-    Description: Reads from the Email Queue and sends messages.
-    Properties:
-      Handler: email_task.lambda_handler
-      Runtime: python3.6
-      CodeUri: ./src/functions/email
-    Environment:
-        Variables:
-          EMAIL_QUEUE_URL: !Ref EmailQueue
-    Policies:
-      Statement:
-        - Effect: Allow
-          Action: sqs:ReceiveMessage
-          Resource: !Sub ${EmailQueue.Arn}
-        - Effect: Allow
-          Action: ses:SendEmail
-          Resource: '*'
-          Condition:
-            StringEquals:
-              ses:FromAddress: 'noreply@communitypatch.com'
-
-# Application KMS Master Key
-
-  CommunityPatchKey:
-    Type: "AWS::KMS::Key"
-    Properties:
-      KeyPolicy:
-        Effect: Allow
-        Principal:
-          AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:user/root'
-        Action:
-          - kms:*
-        Resource: "*"
-
-# S3 Buckets
-
-  PatchDefinitionsBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              KMSMasterKeyID: !Ref CommunityPatchKey
-              SSEAlgorithm: "aws:kms"
-
-# DynamoDB Tables
-
-  AccountsTable:
-    Type: AWS::Serverless::SimpleTable
-    PrimaryKey:
-      Name: id
-      Type: String
-
-  TokenBlacklistTable:
-    Type: AWS::Serverless::SimpleTable
-
-  SubscriptionsTable:
-    Type: AWS::Serverless::SimpleTable
-
-# SQS Queues
-
-  ErrorQueue:
-    Type: AWS::SQS::Queue
-    Description: Dead Letter Queue for registering failures within the application.
-
-  EmailQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      VisibilityTimeout: 60
-      RedrivePolicy:
-        deadLetterTargetArn: !Sub ${ErrorQueue.Arn}
-        maxReceiveCount: 10
+#  PatchApiUpdateDelete:
+#    Type: AWS::Serverless::Function
+#    Description: Handles API requests for updating patch definitions.
+#    Properties:
+#      Runtime: python3.6
+#      Handler: rest_api.lambda_handler
+#      CodeUri: ./src/functions/api
+#      Timeout: 10
+#      Environment:
+#        Variables:
+#          S3_BUCKET: !Ref PatchDefinitionsBucket
+#          TABLE_NAME: !Ref SubscriptionsTable
+#      Policies:
+#        Statement:
+#          - Effect: Allow
+#            Action: dynamodb:GetItem
+#            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${SubscriptionsTable}'
+#          - Effect: Allow
+#            Action:
+#             - s3:GetObject
+#             - s3:PutObject
+#            Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
+#      Events:
+#        PostVersion:
+#          Type: Api
+#          Properties:
+#            Path: /api/v1/title/{title_id}/version
+#            Method: post
+#            RestApiId:
+#                Ref: ApiGateway
