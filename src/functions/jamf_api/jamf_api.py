@@ -36,15 +36,41 @@ def response(body_data, status_code):
     }
 
 
+def scan_table():
+    results = dynamodb.scan()
+    while True:
+        for row in results['Items']:
+            yield row
+        if results.get('LastEvaluatedKey'):
+            results = dynamodb.scan(
+                ExclusiveStartKey=results['LastEvaluatedKey'])
+        else:
+            break
+
+
 def list_software_titles():
     try:
-        titles = dynamodb.scan()
+        titles = [item['title_summary'] for item in scan_table()]
     except ClientError as error:
         logger.exception(f'DynamoDB: {error.response}')
         return response(f'Internal Server Error: {error}', 500)
 
-    data = [item['title_summary'] for item in titles['Items']]
-    return response(data, 200)
+    return response(titles, 200)
+
+
+def list_select_software_titles(path_parameter):
+    match_titles = path_parameter.split(',')
+
+    try:
+        titles = [
+            item['title_summary'] for item in scan_table()
+            if item['id'] in match_titles
+        ]
+    except ClientError as error:
+        logger.exception(f'DynamoDB: {error.response}')
+        return response(f'Internal Server Error: {error}', 500)
+
+    return response(titles, 200)
 
 
 # def patch_title(title):
@@ -73,8 +99,7 @@ def lambda_handler(event, context):
         return list_software_titles()
 
     elif resource == '/jamf/v1/software/{proxy+}':
-        # parameter['proxy'].split(',')
-        return response('Placeholder', 200)
+        return list_select_software_titles(parameter['proxy'])
 
     elif resource == '/jamf/v1/patch/{proxy+}':
         # parameter['proxy']
