@@ -1,6 +1,8 @@
 import json
 import logging
 import os
+import shutil
+import tempfile
 
 import boto3
 from botocore.exceptions import ClientError
@@ -73,18 +75,21 @@ def list_select_software_titles(path_parameter):
     return response(titles, 200)
 
 
-# def patch_title(title):
-#     path = os.path.join(tempdir, title)
-#
-#     try:
-#         s3_bucket.download_file(f'{title}.json', path)
-#     except ClientError:
-#         return response({'error': f'Title Not Found: {title}'}, 404)
-#
-#     with open(path, 'r') as f_obj:
-#         data = json.load(f_obj)
-#
-#     return response(data, 200)
+def get_patch_definition(title):
+    tempdir = tempfile.mkdtemp()
+    path = os.path.join(tempdir, title)
+
+    try:
+        s3_bucket.download_file(f'{title}.json', path)
+    except ClientError:
+        shutil.rmtree(tempdir)
+        return response(f'Title Not Found: {title}', 404)
+
+    with open(path, 'r') as f_obj:
+        data = json.load(f_obj)
+
+    shutil.rmtree(tempdir)
+    return response(data, 200)
 
 
 def lambda_handler(event, context):
@@ -102,8 +107,7 @@ def lambda_handler(event, context):
         return list_select_software_titles(parameter['proxy'])
 
     elif resource == '/jamf/v1/patch/{proxy+}':
-        # parameter['proxy']
-        return response('Placeholder', 200)
+        return get_patch_definition(parameter['proxy'])
 
     else:
         return response('Not Found', 404)
