@@ -80,7 +80,7 @@ def get_patch_definition(title):
     path = os.path.join(tempdir, title)
 
     try:
-        s3_bucket.download_file(f'{title}.json', path)
+        s3_bucket.download_file(title, path)
     except ClientError:
         shutil.rmtree(tempdir)
         return response(f'Title Not Found: {title}', 404)

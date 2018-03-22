@@ -179,7 +179,7 @@ def main(body):
     try:
         resp = s3_bucket.put_object(
             Body=json.dumps(patch_definition),
-            Key=f"{patch_definition['id']}.json"
+            Key=patch_definition['id']
         )
     except ClientError as error:
         logger.exception(f'S3: {error}')
