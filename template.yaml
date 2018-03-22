@@ -80,6 +80,15 @@ Resources:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RestApiNew.Arn}/invocations
               responses: {}
 
+          "/api/v1/title/{title}/version":
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RestApiUpdate.Arn}/invocations
+              responses: {}
+
           "/jamf/v1/software":
             get:
               x-amazon-apigateway-integration:
@@ -226,33 +235,35 @@ Resources:
             RestApiId:
                 Ref: ApiGateway
 
-#  PatchApiUpdateDelete:
-#    Type: AWS::Serverless::Function
-#    Description: Handles API requests for updating patch definitions.
-#    Properties:
-#      Runtime: python3.6
-#      Handler: rest_api.lambda_handler
-#      CodeUri: ./src/functions/api
-#      Timeout: 10
-#      Environment:
-#        Variables:
-#          S3_BUCKET: !Ref PatchDefinitionsBucket
-#          TABLE_NAME: !Ref SubscriptionsTable
-#      Policies:
-#        Statement:
-#          - Effect: Allow
-#            Action: dynamodb:GetItem
-#            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${SubscriptionsTable}'
-#          - Effect: Allow
-#            Action:
-#             - s3:GetObject
-#             - s3:PutObject
-#            Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
-#      Events:
-#        PostVersion:
-#          Type: Api
-#          Properties:
-#            Path: /api/v1/title/{title_id}/version
-#            Method: post
-#            RestApiId:
-#                Ref: ApiGateway
+  RestApiUpdate:
+    Type: AWS::Serverless::Function
+    Description: Handles API requests for updating patch definitions.
+    Properties:
+      Runtime: python3.6
+      Handler: rest_api_update.lambda_handler
+      CodeUri: ./src/functions/rest_api_update
+      Timeout: 10
+      Environment:
+        Variables:
+          DEFINITIONS_BUCKET: !Ref PatchDefinitionsBucket
+          DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:UpdateItem
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
+          - Effect: Allow
+            Action:
+             - s3:GetObject
+             - s3:PutObject
+            Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
+      Events:
+        PostVersion:
+          Type: Api
+          Properties:
+            Path: /api/v1/title/{title}/version
+            Method: post
+            RestApiId:
+                Ref: ApiGateway
