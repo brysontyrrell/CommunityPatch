@@ -1,0 +1,2 @@
+jsonschema==2.6.0
+PyJWT==1.5.3

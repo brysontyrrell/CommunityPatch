@@ -1,7 +1,4 @@
-# Stupid Simple Patch Server
+# CommunityPatch.com
 
-[![Documentation Status](https://readthedocs.org/projects/stupidsimplepatchserver/badge/?version=latest)](http://stupidsimplepatchserver.readthedocs.io/en/latest/?badge=latest)
-
-A serverless Patch Server for Jamf Pro using AWS.
-
-Read the full documentation here at [ReadTheDocs](http://stupidsimplepatchserver.readthedocs.io/en/latest/).
+This is the source code for the free, cloud hosted Patch Server service for
+Jamf Pro users.
