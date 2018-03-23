@@ -163,7 +163,15 @@ Resources:
       CodeUri: ./src/functions/authorizer
       Environment:
         Variables:
+          DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
           SECRET_KEY: !Ref TokenSecretKey
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:UpdateItem
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
 
   AuthorizerPermissions:
     Type: AWS::Lambda::Permission
@@ -216,9 +224,6 @@ Resources:
              - dynamodb:GetItem
              - dynamodb:Scan
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
-#          - Effect: Allow
-#            Action: s3:ListBucket
-#            Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}'
           - Effect: Allow
             Action: s3:GetObject
             Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
@@ -292,7 +297,6 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - dynamodb:GetItem
               - dynamodb:UpdateItem
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
           - Effect: Allow

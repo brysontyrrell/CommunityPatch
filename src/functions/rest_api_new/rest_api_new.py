@@ -106,7 +106,7 @@ def send_email(recipient, api_token):
     )
 
 
-def main(body):
+def lambda_handler(event, context):
     """Order of operations:
     1) Validate JSON (must have author_name, author_email, definition)
     2) Validate Software Title Definition JSON
@@ -114,7 +114,7 @@ def main(body):
     2) Ensure a unique Software Title ID
     """
     try:
-        data = json.loads(body)
+        data = json.loads(event['body'])
     except (TypeError, json.JSONDecodeError):
         return response('Bad Request', 400)
 
@@ -197,7 +197,3 @@ def main(body):
         logger.info(f'Sent Email via SES: {resp}')
 
     return response(api_token, 201)
-
-
-def lambda_handler(event, context):
-    return main(event['body'])

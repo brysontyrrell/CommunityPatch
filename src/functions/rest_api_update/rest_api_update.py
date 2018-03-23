@@ -36,12 +36,21 @@ def response(message, status_code):
     }
 
 
-def main(title, body):
-    """
-    """
+def lambda_handler(event, context):
+    parameter = event['pathParameters']
+    try:
+        token = event['requestContext']['authorizer']['jti']
+    except KeyError:
+        logger.error('Token data not found!')
+        return response('Bad Request', 400)
+
+    logger.info(f"Token data: {token}")
+
+    title = parameter['title']
+
     logger.info('Loading JSON body')
     try:
-        data = json.loads(body)
+        data = json.loads(event['body'])
     except (TypeError, json.JSONDecodeError):
         return response('Bad Request', 400)
 
@@ -53,16 +62,6 @@ def main(title, body):
         return response("Bad Request: The patch definition failed validation: "
                         f"{error.message} for path: "
                         f"/{'/'.join([str(i) for i in error.path])}", 400)
-
-    logger.info(f"Looking up title '{title}' in database")
-    try:
-        resp = dynamodb.get_item(Key={'id': title})
-    except ClientError as error:
-        logger.exception(f'DynamoDB: {error.response}')
-        return response(f'Internal Server Error: {error}', 500)
-
-    if not resp.get('Item'):
-        return response(f'Not Found: {title}', 404)
 
     tempdir = tempfile.mkdtemp()
     path = os.path.join(tempdir, title)
@@ -121,16 +120,3 @@ def main(title, body):
 
     logger.info(f"Software title update for '{title}' successful!")
     return response(f"'{title}' updated to version '{data['version']}'", 201)
-
-
-def lambda_handler(event, context):
-    parameter = event['pathParameters']
-    try:
-        token = event['requestContext']['authorizer']['jti']
-    except KeyError:
-        logger.error('Token data not found!')
-        return response('Bad Request', 400)
-
-    logger.info(f"Token data: {token}")
-
-    return main(parameter['title'], event['body'])
