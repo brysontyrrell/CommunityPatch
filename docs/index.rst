@@ -16,7 +16,10 @@ Create a New Software Title Definition
 
    The examples provided below will reference this script.
 
-`POST /api/v1/title` - Create a new patch definition on CommunityPatch.com. You
+``POST /api/v1/title``
+^^^^^^^^^^^^^^^^^^^^^^
+
+Create a new patch definition on CommunityPatch.com. You
 must provide a JSON payload containing an `author_name` and an `author_email` in
 addition to the full software title definition under the `definition` key.
 
@@ -29,11 +32,11 @@ addition to the full software title definition under the `definition` key.
       "definition": {}
    }
 
-The `id` and `name` values of the provided software title definition will be
-modified to include the `author_name` (as a unique identifier for the title).
+The ``id`` and ``name`` values of the provided software title definition will be
+modified to include the ``author_name`` (as a unique identifier for the title).
 
 On success, an API token to manage this software title will be sent to the
-provided email address. The modified `id` and `name` values will be returned
+provided email address. The modified ``id`` and ``name`` values will be returned
 with the API request as well as included in the email.
 
 .. note::
@@ -42,7 +45,7 @@ with the API request as well as included in the email.
    value with the record of the software title. This hash is only used to
    validate requests to reset the API token for a definition.
 
-An example using `curl` and `Patch-Starter-Script`:
+An example using ``curl`` and ``Patch-Starter-Script``:
 
 .. code-block:: bash
 
@@ -54,10 +57,13 @@ An example using `curl` and `Patch-Starter-Script`:
 Update a Software Title Version
 -------------------------------
 
-`POST /api/v1/title/{title}/version` - Update a software title's definition with
+``POST /api/v1/title/{title}/version``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Update a software title's definition with
 a new version. The JSON payload should only contain the data for the version.
 
-An example using `curl` and `Patch-Starter-Script`:
+An example using ``curl`` and ``Patch-Starter-Script``:
 
 .. code-block:: bash
 

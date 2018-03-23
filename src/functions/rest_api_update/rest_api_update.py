@@ -125,5 +125,12 @@ def main(title, body):
 
 def lambda_handler(event, context):
     parameter = event['pathParameters']
+    try:
+        token = event['requestContext']['authorizer']['jti']
+    except KeyError:
+        logger.error('Token data not found!')
+        return response('Bad Request', 400)
+
+    logger.info(f"Token data: {token}")
 
     return main(parameter['title'], event['body'])

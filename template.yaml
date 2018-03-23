@@ -46,6 +46,19 @@ Resources:
         swagger: "2.0"
         info:
           title: !Ref AWS::StackName
+
+        securityDefinitions:
+          authorizer:
+            type: apiKey
+            name: Authorization
+            in: header
+            x-amazon-apigateway-authtype: custom
+            x-amazon-apigateway-authorizer:
+              type: token
+              authorizerUri:
+                Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Authorizer.Arn}/invocations
+              authorizerResultTtlInSeconds: 5
+
         paths:
           "/":
             get:
@@ -53,7 +66,8 @@ Resources:
                 contentHandling: "CONVERT_TO_TEXT"
                 type: aws
                 httpMethod: post
-                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebView.Arn}/invocations"
+                uri:
+                  Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebView.Arn}/invocations"
                 passthroughBehavior: "when_no_match"
                 responses:
                   default:
@@ -88,6 +102,8 @@ Resources:
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RestApiUpdate.Arn}/invocations
               responses: {}
+              security:
+                - authorizer: []
 
           "/jamf/v1/software":
             get:
@@ -135,6 +151,31 @@ Resources:
       DomainName: !Ref ApiCustomDomain
       RestApiId: !Ref ApiGateway
       Stage: Prod
+
+# Token Functions
+
+  Authorizer:
+    Type: AWS::Serverless::Function
+    Description: Token validation for Uploader.
+    Properties:
+      Runtime: python3.6
+      Handler: authorizer.lambda_handler
+      CodeUri: ./src/functions/authorizer
+      Environment:
+        Variables:
+          SECRET_KEY: !Ref TokenSecretKey
+
+  AuthorizerPermissions:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - ApiGateway
+      - Authorizer
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: Authorizer
+      Principal: apigateway.amazonaws.com
+
 
 # Web View Function: /
 
