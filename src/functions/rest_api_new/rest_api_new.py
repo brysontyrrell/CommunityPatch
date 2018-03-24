@@ -106,24 +106,32 @@ def send_email(recipient, api_token):
     )
 
 
-def lambda_handler(event, context):
+def write_to_database(definition, request, token_id):
+    return dynamodb.put_item(
+        Item={
+            "id": definition['id'],
+            "author_name": request['author_name'],
+            "author_email_hash": hash_value(request['author_email']),
+            "token_id": token_id,
+            "title_summary": {
+                "id": definition['id'],
+                "name": definition['name'],
+                "publisher": definition['publisher'],
+                "currentVersion": definition['currentVersion'],
+                "lastModified": definition['lastModified']
+            }
+        },
+        ConditionExpression='attribute_not_exists(id)'
+    )
+
+
+def definition_from_json(data):
     """Order of operations:
     1) Validate JSON (must have author_name, author_email, definition)
     2) Validate Software Title Definition JSON
     3) Update the 'id' and 'name' values of the definition with author_name
     2) Ensure a unique Software Title ID
     """
-    try:
-        data = json.loads(event['body'])
-    except (TypeError, json.JSONDecodeError):
-        return response('Bad Request', 400)
-
-    try:
-        validate(data, request_schema)
-    except ValidationError as error:
-        logger.error(f'The request JSON failed validation: {error.message}')
-        return response(f'Bad Request: {error.message}', 400)
-
     patch_definition = data.get('definition')
     try:
         validate(patch_definition, definition_schema)
@@ -138,6 +146,7 @@ def lambda_handler(event, context):
     patch_definition['name'] = \
         f"{patch_definition['name']} ({data['author_name']})"
 
+    # This token generation code will be removed to a standalone Lambda
     token_id = str(uuid.uuid4())
 
     api_token = jwt.encode(
@@ -150,22 +159,7 @@ def lambda_handler(event, context):
     ).decode()
 
     try:
-        resp = dynamodb.put_item(
-            Item={
-              "id": patch_definition['id'],
-              "author_name": data['author_name'],
-              "author_email_hash": hash_value(data['author_email']),
-              "token_id": token_id,
-              "title_summary": {
-                      "id": patch_definition['id'],
-                      "name": patch_definition['name'],
-                      "publisher": patch_definition['publisher'],
-                      "currentVersion": patch_definition['currentVersion'],
-                      "lastModified": patch_definition['lastModified']
-              }
-            },
-            ConditionExpression='attribute_not_exists(id)'
-        )
+        resp = write_to_database(patch_definition, data, token_id)
     except ClientError as error:
         if error.response['Error']['Code'] == 'ConditionalCheckFailedException':
             return response("Conflict: A title with this the ID "
@@ -197,3 +191,19 @@ def lambda_handler(event, context):
         logger.info(f'Sent Email via SES: {resp}')
 
     return response(api_token, 201)
+
+
+def lambda_handler(event, context):
+    try:
+        data = json.loads(event['body'])
+    except (TypeError, json.JSONDecodeError):
+        return response('Bad Request', 400)
+
+    try:
+        validate(data, request_schema)
+    except ValidationError as error:
+        logger.error(f'The request JSON failed validation: {error.message}')
+        return response(f'Bad Request: {error.message}', 400)
+
+    if data.get('definition'):
+        return definition_from_json(data)
