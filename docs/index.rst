@@ -51,7 +51,7 @@ An example using ``curl`` and ``Patch-Starter-Script``:
 
    curl https://beta.communitypatch.com/api/v1/title \
       -X POST \
-      -d "{\"author_name\": \"Bryson\", \"author_email\": \"bryson.tyrrell@gmail.com\", \"definition\": $(python patchstarter.py /Applications/GitHub\ Desktop.app -p "GitHub")}" \
+      -d "{\"author_name\": \"Bryson\", \"author_email\": \"bryson.tyrrell@gmail.com\", \"definition\": $(python patchstarter.py /Applications/<APP> -p "<PUBLISHER>")}" \
       -H 'Content-Type: application/json'
 
 Update a Software Title Version
@@ -67,11 +67,40 @@ An example using ``curl`` and ``Patch-Starter-Script``:
 
 .. code-block:: bash
 
-   curl http://beta.communitypatch.com/api/v1/title/GitHubDesktop_Bryson/version \
+   curl http://beta.communitypatch.com/api/v1/title/<APP>_Bryson/version \
       -X POST \
-      -d "$(python patchstarter.py /Applications/GitHub\ Desktop.app -p "GitHub" --patch-only)" \
+      -d "$(python patchstarter.py /Applications/<APP> --patch-only)" \
       -H 'Content-Type: application/json' \
       -H 'Authorization: Bearer <TOKEN>'
+
+The default behavior for this request is to add the new version as the
+``latest`` version of this definition.
+
+To specify where the the new version should be added in the ``patches`` array of
+the definition, use the ``insert_after=<VERSION>`` or
+``insert_before=<VERSION>`` parameters where ``VERSION`` is an existing version
+in the definition.
+
+.. code-block:: bash
+
+   curl 'http://beta.communitypatch.com/api/v1/title/<APP>_Bryson/version?insert_after=<VERSION>' \
+      -X POST \
+      -d "$(python patchstarter.py /Applications/<APP> --patch-only)" \
+      -H 'Content-Type: application/json' \
+      -H 'Authorization: Bearer <TOKEN>'
+
+   curl 'http://beta.communitypatch.com/api/v1/title/<APP>_Bryson/version?insert_before=<VERSION>' \
+      -X POST \
+      -d "$(python patchstarter.py /Applications/<APP> --patch-only)" \
+      -H 'Content-Type: application/json' \
+      -H 'Authorization: Bearer <TOKEN>'
+
+.. note::
+
+   If you make a request using the ``insert_after`` or ``insert_before`` options
+   and the placement of the new version is not at the ``latest`` position, the
+   definition's ``currentVersion`` will not be updated, but the ``lastModified``
+   timestamp will be.
 
 Add CommunityPatch.com to Jamf Pro
 ==================================

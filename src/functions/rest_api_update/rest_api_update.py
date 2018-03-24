@@ -36,8 +36,44 @@ def response(message, status_code):
     }
 
 
+def get_index(params, patches):
+    """If 'insert_after' or 'insert_before' were passed as parameters, return
+    the target index for the provided target version.
+
+    If 'params' is 'None' or empty, return 0.
+
+    :param params: Query string parameters
+    :type params: dict or None
+
+    :param list patches: The 'patches' array from a definition
+    """
+    if not params:
+        return 0
+
+    if all(i in params.keys() for i in ['insert_after', 'insert_before']):
+        raise ValueError('Conflicting parameters provided')
+
+    index = 0
+    if any(i in params.keys() for i in ['insert_after', 'insert_before']):
+        if params.get('insert_after'):
+            index = next((index for (index, d) in enumerate(patches) if
+                          d["version"] == params.get('insert_after')), None) + 1
+        elif params.get('insert_before'):
+            index = next((index for (index, d) in enumerate(patches) if
+                          d["version"] == params.get('insert_before')), None)
+        else:
+            raise ValueError('Parameters have no values')
+
+    if not index:
+        raise ValueError('Provided version not found')
+
+    return index
+
+
 def lambda_handler(event, context):
-    parameter = event['pathParameters']
+    parameters = event['pathParameters']
+    query_string_parameters = event['queryStringParameters']
+
     try:
         token = event['requestContext']['authorizer']['jti']
     except KeyError:
@@ -46,7 +82,7 @@ def lambda_handler(event, context):
 
     logger.info(f"Token data: {token}")
 
-    title = parameter['title']
+    title = parameters['title']
 
     logger.info('Loading JSON body')
     try:
@@ -88,11 +124,21 @@ def lambda_handler(event, context):
             f"Conflict: The version '{data['version']}' already exists in "
             "the patch definition", 409)
 
+    try:
+        target_index = get_index(
+            query_string_parameters, patch_definition_file['patches'])
+    except ValueError as error:
+        return response(f'Bad Request: {str(error)}', 400)
+
     logger.info(f"Updating the definition with new version: {data['version']}")
-    patch_definition_file['patches'].insert(0, data)
+    patch_definition_file['patches'].insert(target_index, data)
+
+    # Use the version of the first patch after the insert operation above
+    patch_definition_file['currentVersion'] = \
+        patch_definition_file['patches'][0]['version']
+
     patch_definition_file['lastModified'] = \
         datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-    patch_definition_file['currentVersion'] = data['version']
 
     logger.info("Updating database 'currentVersion' and 'lastModified'")
     try:
@@ -118,5 +164,5 @@ def lambda_handler(event, context):
         logger.exception(f'S3: {error.response}')
         return response(f'Internal Server Error: {error}', 500)
 
-    logger.info(f"Software title update for '{title}' successful!")
-    return response(f"'{title}' updated to version '{data['version']}'", 201)
+    logger.info(f"Version '{data['version']}' added to '{title}'")
+    return response(f"Version '{data['version']}' added to '{title}'", 201)
