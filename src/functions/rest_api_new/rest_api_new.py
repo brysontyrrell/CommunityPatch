@@ -3,12 +3,15 @@ import hashlib
 import json
 import logging
 import os
+import time
+from urllib.parse import urlparse
 import uuid
 
 import boto3
 from botocore.exceptions import ClientError
 from jsonschema import validate, ValidationError
 import jwt
+import requests
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -106,33 +109,41 @@ def send_email(recipient, api_token):
     )
 
 
-def write_to_database(definition, request, token_id):
-    return dynamodb.put_item(
-        Item={
-            "id": definition['id'],
-            "author_name": request['author_name'],
-            "author_email_hash": hash_value(request['author_email']),
-            "token_id": token_id,
-            "title_summary": {
-                "id": definition['id'],
-                "name": definition['name'],
-                "publisher": definition['publisher'],
-                "currentVersion": definition['currentVersion'],
-                "lastModified": definition['lastModified']
-            }
-        },
-        ConditionExpression='attribute_not_exists(id)'
+def definition_from_url(data):
+    logger.info('Loading definition from URL')
+    parsed_url = urlparse(data['definition_url'])
+    if not (parsed_url.scheme and parsed_url.netloc):
+        return response('Bad Request: Invalid definition URL', 400)
+
+    resp = requests.get(
+        data['definition_url'],
+        headers={'Accept': 'application/json'},
+        timeout=3
     )
+
+    try:
+        resp.raise_for_status()
+    except requests.HTTPError as error:
+        return response(f'An error occurred attempting to read the definition '
+                        f'URL: {error}', 400)
+
+    try:
+        patch_definition = resp.json()
+    except json.JSONDecodeError:
+        return response('Bad Request: The definition URL did not return JSON '
+                        'content', 400)
+
+    return create_definition(patch_definition, data, synced=True)
 
 
 def definition_from_json(data):
-    """Order of operations:
-    1) Validate JSON (must have author_name, author_email, definition)
-    2) Validate Software Title Definition JSON
-    3) Update the 'id' and 'name' values of the definition with author_name
-    2) Ensure a unique Software Title ID
-    """
+    logger.info('Loading definition from request body')
     patch_definition = data.get('definition')
+    return create_definition(patch_definition, data)
+
+
+def create_definition(patch_definition, data, synced=False):
+    """Create the definition in DynamoDB and S3"""
     try:
         validate(patch_definition, definition_schema)
     except ValidationError as error:
@@ -159,7 +170,25 @@ def definition_from_json(data):
     ).decode()
 
     try:
-        resp = write_to_database(patch_definition, data, token_id)
+        resp = dynamodb.put_item(
+            Item={
+                "id": patch_definition['id'],
+                "author_name": data['author_name'],
+                "author_email_hash": hash_value(data['author_email']),
+                "token_id": token_id,
+                "is_synced": synced,
+                "last_sync_result": True if synced else None,
+                "last_sync_time": int(time.time()) if synced else None,
+                "title_summary": {
+                    "id": patch_definition['id'],
+                    "name": patch_definition['name'],
+                    "publisher": patch_definition['publisher'],
+                    "currentVersion": patch_definition['currentVersion'],
+                    "lastModified": patch_definition['lastModified']
+                }
+            },
+            ConditionExpression='attribute_not_exists(id)'
+        )
     except ClientError as error:
         if error.response['Error']['Code'] == 'ConditionalCheckFailedException':
             return response("Conflict: A title with this the ID "
@@ -197,13 +226,16 @@ def lambda_handler(event, context):
     try:
         data = json.loads(event['body'])
     except (TypeError, json.JSONDecodeError):
-        return response('Bad Request', 400)
+        return response('Bad Request: Data must be JSON', 400)
 
     try:
         validate(data, request_schema)
     except ValidationError as error:
         logger.error(f'The request JSON failed validation: {error.message}')
-        return response(f'Bad Request: {error.message}', 400)
+        return response(
+            f'Bad Request: One or more required fields are missing', 400)
 
     if data.get('definition'):
         return definition_from_json(data)
+    elif data.get('definition_url'):
+        return definition_from_url(data)
