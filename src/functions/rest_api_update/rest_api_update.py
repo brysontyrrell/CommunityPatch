@@ -53,7 +53,7 @@ def get_index(params, patches):
     if all(i in params.keys() for i in ['insert_after', 'insert_before']):
         raise ValueError('Conflicting parameters provided')
 
-    index = 0
+    index = None
     if any(i in params.keys() for i in ['insert_after', 'insert_before']):
         if params.get('insert_after'):
             index = next((index for (index, d) in enumerate(patches) if
@@ -64,7 +64,7 @@ def get_index(params, patches):
         else:
             raise ValueError('Parameters have no values')
 
-    if not index:
+    if index is None:
         raise ValueError('Provided version not found')
 
     return index

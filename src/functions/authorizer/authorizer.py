@@ -57,7 +57,7 @@ def verify_if_sync_restriction(method_arn, is_synced):
     definitions are not allowed to be interacted with by it.
     """
     arn_resource = method_arn.split('/')[-1]
-    if arn_resource == 'version':
+    if arn_resource == 'version' and is_synced:
         return True
     else:
         return False
@@ -118,7 +118,7 @@ def lambda_handler(event, context):
 
     # 5 - Sync restriction check
     logger.info('Verifying no sync restrictions for this API request')
-    if verify_if_sync_restriction(method_arn, resp['Item']['is_synced']):
+    if verify_if_sync_restriction(method_arn, resp['Item'].get('is_synced')):
         logger.error('This API request is not allowed for synced definitions')
         return generate_policy(token, 'Deny', method_arn)
 
