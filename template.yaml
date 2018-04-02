@@ -22,6 +22,14 @@ Parameters:
 
 Resources:
 
+# SNS Topics
+
+  TokenActionTopic:
+    Type: AWS::SNS::Topic
+
+  SendEmailTopic:
+    Type: AWS::SNS::Topic
+
 # S3 Buckets
 
   PatchDefinitionsBucket:
@@ -154,6 +162,19 @@ Resources:
 
 # Token Functions
 
+  TokenManager:
+    Type: AWS::Serverless::Function
+    Description: Creates and rotates tokens.
+    Properties:
+      Runtime: python3.6
+      Handler: token_manager.lambda_handler
+      CodeUri: ./src/functions/token_manager
+      Events:
+        SnsTopic:
+          Type: SNS
+          Properties:
+            Topic: !Ref TokenActionTopic
+
   Authorizer:
     Type: AWS::Serverless::Function
     Description: Token validation for Uploader.
@@ -183,6 +204,34 @@ Resources:
       FunctionName:
         Ref: Authorizer
       Principal: apigateway.amazonaws.com
+
+# Email Functions
+
+  SendEmail:
+    Type: AWS::Serverless::Function
+    Description:
+    Properties:
+      Runtime: python3.6
+      Handler: send_email.lambda_handler
+      CodeUri: ./src/functions/send_email
+      Timeout: 10
+      Environment:
+        Variables:
+          SENDER_ADDRESS: !Ref EmailSenderAddress
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action: ses:SendEmail
+            Resource: '*'
+            Condition:
+              StringEquals:
+                ses:FromAddress: !Ref EmailSenderAddress
+      Events:
+        SnsTopic:
+          Type: SNS
+          Properties:
+            Topic: !Ref SendEmailTopic
+
 
 
 # Web View Function: /
@@ -257,14 +306,11 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-             - s3:GetObject
              - s3:PutObject
             Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
           - Effect: Allow
             Action:
-             - dynamodb:GetItem
              - dynamodb:PutItem
-             - dynamodb:Scan
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
           - Effect: Allow
             Action: ses:SendEmail
@@ -312,3 +358,33 @@ Resources:
             Method: post
             RestApiId:
                 Ref: ApiGateway
+
+# Title Sync Functions
+
+  TitleSync:
+    Type: AWS::Serverless::Function
+    Description:
+    Properties:
+      Runtime: python3.6
+      Handler: sync_definitions.lambda_handler
+      CodeUri: ./src/functions/sync_definitions
+      Environment:
+        Variables:
+          DEFINITIONS_BUCKET: !Ref PatchDefinitionsBucket
+          DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+            Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
+          - Effect: Allow
+            Action:
+              - dynamodb:Scan
+              - dynamodb:UpdateItem
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
+      Events:
+        EveryHour:
+            Type: Schedule
+            Properties:
+              Schedule: 'cron(0 * * * ? *)'
