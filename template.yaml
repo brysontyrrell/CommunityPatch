@@ -169,6 +169,20 @@ Resources:
       Runtime: python3.6
       Handler: token_manager.lambda_handler
       CodeUri: ./src/functions/token_manager
+      Environment:
+        Variables:
+          DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
+          SECRET_KEY: !Ref TokenSecretKey
+          SNS_TOPIC_ARN_EMAIL: !Ref SendEmailTopic
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action:
+             - dynamodb:UpdateItem
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
+          - Effect: Allow
+            Action: sns:Publish
+            Resource: !Ref SendEmailTopic
       Events:
         SnsTopic:
           Type: SNS
@@ -300,8 +314,7 @@ Resources:
         Variables:
           DEFINITIONS_BUCKET: !Ref PatchDefinitionsBucket
           DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
-          SECRET_KEY: !Ref TokenSecretKey
-          SENDER_ADDRESS: !Ref EmailSenderAddress
+          SNS_TOPIC_ARN_TOKEN: !Ref TokenActionTopic
       Policies:
         Statement:
           - Effect: Allow
@@ -313,11 +326,8 @@ Resources:
              - dynamodb:PutItem
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
           - Effect: Allow
-            Action: ses:SendEmail
-            Resource: '*'
-            Condition:
-              StringEquals:
-                ses:FromAddress: 'noreply@communitypatch.com'
+            Action: sns:Publish
+            Resource: !Ref TokenActionTopic
       Events:
         PostDefinition:
           Type: Api

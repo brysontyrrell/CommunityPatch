@@ -5,23 +5,20 @@ import logging
 import os
 import time
 from urllib.parse import urlparse
-import uuid
 
 import boto3
 from botocore.exceptions import ClientError
 from jsonschema import validate, ValidationError
-import jwt
 import requests
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-SECRET_KEY = os.getenv('SECRET_KEY')
-SENDER_ADDRESS = os.getenv('SENDER_ADDRESS')
+SNS_TOPIC_ARN_TOKEN = os.getenv('SNS_TOPIC_ARN_TOKEN')
 
 dynamodb = boto3.resource('dynamodb').Table(os.getenv('DEFINITIONS_TABLE'))
 s3_bucket = boto3.resource('s3').Bucket(os.getenv('DEFINITIONS_BUCKET'))
-ses_client = boto3.client('ses', region_name='us-east-1')
+sns_client = boto3.client('sns')
 
 with open('schema_request.json', 'r') as f_obj:
     request_schema = json.load(f_obj)
@@ -62,51 +59,6 @@ def hash_value(email, salt=None):
 #     salt = decoded[:16]
 #     hash = decoded[16:]
 #     return secrets.compare_digest(hash_value(email, salt), hash)
-
-
-def send_email(recipient, api_token):
-    # The email body for recipients with non-HTML email clients.
-    body_text = f"Your Community Patch Software Title Token:\n{api_token}\n\n" \
-                "Amazon SES (Python)\nThis email was sent with Amazon SES " \
-                "using the AWS SDK for Python (Boto)."
-
-    # The HTML body of the email.
-    body_html = f"""<html>
-    <head></head>
-    <body>
-      <h1>Your Community Patch Software Title API Token:</h1>
-      <p>{api_token}</p>
-      <h2>Amazon SES Test (SDK for Python)</h1>
-      <p>This email was sent with
-        <a href='https://aws.amazon.com/ses/'>Amazon SES</a> using the
-        <a href='https://aws.amazon.com/sdk-for-python/'>
-          AWS SDK for Python (Boto)</a>.</p>
-    </body>
-    </html>
-    """
-
-    return ses_client.send_email(
-        Destination={
-            'ToAddresses': [recipient],
-        },
-        Message={
-            'Body': {
-                'Html': {
-                    'Charset': 'UTF-8',
-                    'Data': body_html,
-                },
-                'Text': {
-                    'Charset': 'UTF-8',
-                    'Data': body_text,
-                },
-            },
-            'Subject': {
-                'Charset': 'UTF-8',
-                'Data': 'Community Patch API Token',
-            },
-        },
-        Source=f'Commuinity Patch <{SENDER_ADDRESS}>',
-    )
 
 
 def definition_from_url(data):
@@ -157,25 +109,13 @@ def create_definition(patch_definition, data, synced=False):
     patch_definition['name'] = \
         f"{patch_definition['name']} ({data['author_name']})"
 
-    # This token generation code will be removed to a standalone Lambda
-    token_id = str(uuid.uuid4())
-
-    api_token = jwt.encode(
-        {
-            'jti': token_id,
-            'sub': patch_definition['id']
-        },
-        SECRET_KEY,
-        algorithm='HS256'
-    ).decode()
-
     try:
         resp = dynamodb.put_item(
             Item={
                 "id": patch_definition['id'],
                 "author_name": data['author_name'],
                 "author_email_hash": hash_value(data['author_email']),
-                "token_id": token_id,
+                "token_id": None,
                 "is_synced": synced,
                 "last_sync_result": True if synced else None,
                 "last_sync_time": int(time.time()) if synced else None,
@@ -210,16 +150,26 @@ def create_definition(patch_definition, data, synced=False):
     else:
         logger.info(f'Wrote file to S3: {resp}')
 
+    logging.info('Sending SNS notification to token manager')
     try:
-        resp = send_email(data['author_email'], api_token)
+        resp = sns_client.publish(
+            TopicArn=SNS_TOPIC_ARN_TOKEN,
+            Message=json.dumps(
+                {
+                    "software_title_id": patch_definition['id'],
+                    "action": "new_token",
+                    "recipient_address": data['author_email']
+                }
+            ),
+            MessageStructure='string',
+        )
     except ClientError as error:
-        logger.exception(f'SES: {error.response}')
-        return response('Internal Server Error: The email failed to send - '
-                        'contact support', 500)
+        logger.exception('Error sending SNS notification to token manager')
     else:
-        logger.info(f'Sent Email via SES: {resp}')
+        logger.info(f'SNS notification to token manager sent: {resp}')
 
-    return response(api_token, 201)
+    return response('Software title created - check your email for your API '
+                    'token!', 201)
 
 
 def lambda_handler(event, context):
