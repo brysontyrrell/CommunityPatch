@@ -257,6 +257,16 @@ Resources:
       Runtime: python3.6
       Handler: web_view.lambda_handler
       CodeUri: ./src/functions/web_view
+      Environment:
+        Variables:
+          DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action:
+             - dynamodb:GetItem
+             - dynamodb:Scan
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
       Events:
         get:
           Type: Api
