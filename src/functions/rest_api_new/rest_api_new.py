@@ -117,6 +117,7 @@ def create_definition(patch_definition, data, synced=False):
                 "author_email_hash": hash_value(data['author_email']),
                 "token_id": None,
                 "is_synced": synced,
+                "sync_url": data.get('definition_url'),
                 "last_sync_result": True if synced else None,
                 "last_sync_time": int(time.time()) if synced else None,
                 "title_summary": {

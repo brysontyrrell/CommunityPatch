@@ -47,7 +47,7 @@
                                 <td>{{ title.id }}</td>
                                 <td>{{ title.publisher }}</td>
                                 <td>{{ title.currentVersion }}</td>
-                                <td>{{ title.lastModified }}</td>
+                                <td>{{ title.lastModified|safe }}</td>
                                 <td></td>
                             </tr>
                         {% endfor %}

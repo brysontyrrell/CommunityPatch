@@ -396,6 +396,7 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
+              - s3:GetObject
               - s3:PutObject
             Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
           - Effect: Allow
@@ -404,7 +405,7 @@ Resources:
               - dynamodb:UpdateItem
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
       Events:
-        EveryHour:
+        Every30:
             Type: Schedule
             Properties:
-              Schedule: 'cron(0 * * * ? *)'
+              Schedule: 'cron(0/30 * * * ? *)'

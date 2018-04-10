@@ -1,8 +1,7 @@
+import io
 import json
 import logging
 import os
-import shutil
-import tempfile
 
 import boto3
 from botocore.exceptions import ClientError
@@ -76,19 +75,15 @@ def list_select_software_titles(path_parameter):
 
 
 def get_patch_definition(title):
-    tempdir = tempfile.mkdtemp()
-    path = os.path.join(tempdir, title)
+    f_obj = io.BytesIO()
 
     try:
-        s3_bucket.download_file(title, path)
+        s3_bucket.download_fileobj(title, f_obj)
     except ClientError:
-        shutil.rmtree(tempdir)
         return response(f'Title Not Found: {title}', 404)
 
-    with open(path, 'r') as f_obj:
-        data = json.load(f_obj)
+    data = json.loads(f_obj.getvalue())
 
-    shutil.rmtree(tempdir)
     return response(data, 200)
 
 
