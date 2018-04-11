@@ -1,16 +1,20 @@
 from datetime import datetime
+import io
 import json
 import logging
 import os
-import shutil
-import tempfile
 
+from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.core import patch
 import boto3
 from botocore.exceptions import ClientError
 from jsonschema import validate, ValidationError
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+xray_recorder.configure(service='CommunityPatch')
+patch(['boto3'])
 
 dynamodb = boto3.resource('dynamodb').Table(os.getenv('DEFINITIONS_TABLE'))
 s3_bucket = boto3.resource('s3').Bucket(os.getenv('DEFINITIONS_BUCKET'))
@@ -99,26 +103,18 @@ def lambda_handler(event, context):
                         f"{error.message} for path: "
                         f"/{'/'.join([str(i) for i in error.path])}", 400)
 
-    tempdir = tempfile.mkdtemp()
-    path = os.path.join(tempdir, title)
-
-    logger.info(f"Downloading definition to {path}")
+    logger.info(f"Downloading definition")
+    f_obj = io.BytesIO()
     try:
-        s3_bucket.download_file(title, path)
+        s3_bucket.download_fileobj(title, f_obj)
     except ClientError as error:
-        shutil.rmtree(tempdir)
         logger.exception(f'S3: {error.response}')
         return response(f'Title Not Found: {title}', 404)
 
-    logger.info('Loading definition JSON')
-    with open(path, 'r') as f_obj:
-        patch_definition_file = json.load(f_obj)
-
-    logger.info(f'Removing {path}')
-    shutil.rmtree(tempdir)
+    patch_definition_file = json.loads(f_obj.getvalue())
 
     if data['version'] in \
-            [patch['version'] for patch in patch_definition_file['patches']]:
+            [patch_['version'] for patch_ in patch_definition_file['patches']]:
         logger.error(f"Conflicting version supplied: '{data['version']}'")
         return response(
             f"Conflict: The version '{data['version']}' already exists in "

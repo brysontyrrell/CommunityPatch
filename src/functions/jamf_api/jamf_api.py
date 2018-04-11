@@ -3,11 +3,16 @@ import json
 import logging
 import os
 
+from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.core import patch
 import boto3
 from botocore.exceptions import ClientError
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+xray_recorder.configure(service='CommunityPatch')
+patch(['boto3'])
 
 dynamodb = boto3.resource('dynamodb').Table(os.getenv('DEFINITIONS_TABLE'))
 s3_bucket = boto3.resource('s3').Bucket(os.getenv('DEFINITIONS_BUCKET'))

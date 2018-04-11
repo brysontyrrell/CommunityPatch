@@ -3,12 +3,17 @@ import logging
 import os
 import uuid
 
+from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.core import patch
 import boto3
 from botocore.exceptions import ClientError
 import jwt
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+xray_recorder.configure(service='CommunityPatch')
+patch(['boto3'])
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 SNS_TOPIC_ARN_EMAIL = os.getenv('SNS_TOPIC_ARN_EMAIL')

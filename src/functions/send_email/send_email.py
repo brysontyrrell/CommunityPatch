@@ -2,10 +2,15 @@ import json
 import logging
 import os
 
+from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.core import patch
 import boto3
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+xray_recorder.configure(service='CommunityPatch')
+patch(['boto3'])
 
 SENDER_ADDRESS = os.getenv('SENDER_ADDRESS')
 

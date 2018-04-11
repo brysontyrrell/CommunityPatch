@@ -20,6 +20,11 @@ Parameters:
     Type: String
     Description: The key used for generating and validating API tokens.
 
+Globals:
+  Function:
+    Runtime: python3.6
+    Tracing: Active
+
 Resources:
 
 # SNS Topics
@@ -183,6 +188,11 @@ Resources:
           - Effect: Allow
             Action: sns:Publish
             Resource: !Ref SendEmailTopic
+          - Effect: Allow
+            Action:
+              - xray:PutTraceSegments
+              - xray:PutTelemetryRecords
+            Resource: '*'
       Events:
         SnsTopic:
           Type: SNS
@@ -207,6 +217,11 @@ Resources:
               - dynamodb:GetItem
               - dynamodb:UpdateItem
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
+          - Effect: Allow
+            Action:
+              - xray:PutTraceSegments
+              - xray:PutTelemetryRecords
+            Resource: '*'
 
   AuthorizerPermissions:
     Type: AWS::Lambda::Permission
@@ -240,6 +255,11 @@ Resources:
             Condition:
               StringEquals:
                 ses:FromAddress: !Ref EmailSenderAddress
+          - Effect: Allow
+            Action:
+              - xray:PutTraceSegments
+              - xray:PutTelemetryRecords
+            Resource: '*'
       Events:
         SnsTopic:
           Type: SNS
@@ -267,6 +287,11 @@ Resources:
              - dynamodb:GetItem
              - dynamodb:Scan
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
+          - Effect: Allow
+            Action:
+              - xray:PutTraceSegments
+              - xray:PutTelemetryRecords
+            Resource: '*'
       Events:
         get:
           Type: Api
@@ -300,6 +325,11 @@ Resources:
           - Effect: Allow
             Action: s3:GetObject
             Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
+          - Effect: Allow
+            Action:
+              - xray:PutTraceSegments
+              - xray:PutTelemetryRecords
+            Resource: '*'
       Events:
         JamfApi:
           Type: Api
@@ -338,6 +368,11 @@ Resources:
           - Effect: Allow
             Action: sns:Publish
             Resource: !Ref TokenActionTopic
+          - Effect: Allow
+            Action:
+              - xray:PutTraceSegments
+              - xray:PutTelemetryRecords
+            Resource: '*'
       Events:
         PostDefinition:
           Type: Api
@@ -370,6 +405,11 @@ Resources:
              - s3:GetObject
              - s3:PutObject
             Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
+          - Effect: Allow
+            Action:
+              - xray:PutTraceSegments
+              - xray:PutTelemetryRecords
+            Resource: '*'
       Events:
         PostVersion:
           Type: Api
@@ -404,6 +444,11 @@ Resources:
               - dynamodb:Scan
               - dynamodb:UpdateItem
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
+          - Effect: Allow
+            Action:
+              - xray:PutTraceSegments
+              - xray:PutTelemetryRecords
+            Resource: '*'
       Events:
         Every30:
             Type: Schedule
