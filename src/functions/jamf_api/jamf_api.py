@@ -2,6 +2,7 @@ import io
 import json
 import logging
 import os
+import time
 
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core import patch
@@ -16,6 +17,21 @@ patch(['boto3'])
 
 dynamodb = boto3.resource('dynamodb').Table(os.getenv('DEFINITIONS_TABLE'))
 s3_bucket = boto3.resource('s3').Bucket(os.getenv('DEFINITIONS_BUCKET'))
+sqs_queue = boto3.resource('sqs').Queue(os.getenv('METRICS_QUEUE_URL'))
+
+
+def send_metric(name, value, metric):
+    logger.info(f"Sending metric '{name}:{value}:{metric}' to queue")
+    sqs_queue.send_message(
+        MessageBody=json.dumps(
+            {
+                'name': name,
+                'value': value,
+                'metric': metric,
+                'timestamp': time.time()
+            }
+        )
+    )
 
 
 def response(body_data, status_code):
@@ -61,12 +77,14 @@ def list_software_titles():
         logger.exception(f'DynamoDB: {error.response}')
         return response(f'Internal Server Error: {error}', 500)
 
+    send_metric('JamfEndpoints', '/jamf/v1/software', 'Visited')
     return response(titles, 200)
 
 
 def list_select_software_titles(path_parameter):
     match_titles = path_parameter.split(',')
 
+    # THIS NEEDS TO BE SWITCHED TO USING MULTIPLE QUERY OPERATIONS AND NOT SCAN
     try:
         titles = [
             item['title_summary'] for item in scan_table()
@@ -76,6 +94,11 @@ def list_select_software_titles(path_parameter):
         logger.exception(f'DynamoDB: {error.response}')
         return response(f'Internal Server Error: {error}', 500)
 
+    for title in match_titles:
+        send_metric('SoftwareTitles', title, 'ReadCount')
+
+    send_metric(
+        'JamfEndpoints', '/jamf/v1/software/<Title,Title>', 'Visited')
     return response(titles, 200)
 
 
@@ -89,6 +112,7 @@ def get_patch_definition(title):
 
     data = json.loads(f_obj.getvalue())
 
+    send_metric('JamfEndpoints', f'/jamf/v1/patch/<Title>', 'Visited')
     return response(data, 200)
 
 

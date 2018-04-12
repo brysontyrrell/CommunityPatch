@@ -20,34 +20,19 @@ Parameters:
     Type: String
     Description: The key used for generating and validating API tokens.
 
+  MetricsNamespace:
+    Type: String
+    Description: The label for the namespace in CloudWatch Metrics.
+
 Globals:
   Function:
     Runtime: python3.6
     Tracing: Active
+    Environment:
+      Variables:
+        METRICS_QUEUE_URL: !Ref MetricsQueue
 
 Resources:
-
-# SNS Topics
-
-  TokenActionTopic:
-    Type: AWS::SNS::Topic
-
-  SendEmailTopic:
-    Type: AWS::SNS::Topic
-
-# S3 Buckets
-
-  PatchDefinitionsBucket:
-    Type: AWS::S3::Bucket
-
-# DynamoDB Tables
-
-  PatchDefinitionsTable:
-    Type: AWS::Serverless::SimpleTable
-    Properties:
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
 
 # API Gateway
 
@@ -165,6 +150,33 @@ Resources:
       RestApiId: !Ref ApiGateway
       Stage: Prod
 
+# DynamoDB Tables
+
+  PatchDefinitionsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+# S3 Buckets
+
+  PatchDefinitionsBucket:
+    Type: AWS::S3::Bucket
+
+# SNS Topics
+
+  TokenActionTopic:
+    Type: AWS::SNS::Topic
+
+  SendEmailTopic:
+    Type: AWS::SNS::Topic
+
+# SQS Queues
+
+  MetricsQueue:
+    Type: AWS::SQS::Queue
+
 # Token Functions
 
   TokenManager:
@@ -189,10 +201,8 @@ Resources:
             Action: sns:Publish
             Resource: !Ref SendEmailTopic
           - Effect: Allow
-            Action:
-              - xray:PutTraceSegments
-              - xray:PutTelemetryRecords
-            Resource: '*'
+            Action: sqs:SendMessage
+            Resource: !GetAtt MetricsQueue.Arn
       Events:
         SnsTopic:
           Type: SNS
@@ -218,10 +228,8 @@ Resources:
               - dynamodb:UpdateItem
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
           - Effect: Allow
-            Action:
-              - xray:PutTraceSegments
-              - xray:PutTelemetryRecords
-            Resource: '*'
+            Action: sqs:SendMessage
+            Resource: !GetAtt MetricsQueue.Arn
 
   AuthorizerPermissions:
     Type: AWS::Lambda::Permission
@@ -256,10 +264,8 @@ Resources:
               StringEquals:
                 ses:FromAddress: !Ref EmailSenderAddress
           - Effect: Allow
-            Action:
-              - xray:PutTraceSegments
-              - xray:PutTelemetryRecords
-            Resource: '*'
+            Action: sqs:SendMessage
+            Resource: !GetAtt MetricsQueue.Arn
       Events:
         SnsTopic:
           Type: SNS
@@ -288,10 +294,8 @@ Resources:
              - dynamodb:Scan
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
           - Effect: Allow
-            Action:
-              - xray:PutTraceSegments
-              - xray:PutTelemetryRecords
-            Resource: '*'
+            Action: sqs:SendMessage
+            Resource: !GetAtt MetricsQueue.Arn
       Events:
         get:
           Type: Api
@@ -326,10 +330,8 @@ Resources:
             Action: s3:GetObject
             Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
           - Effect: Allow
-            Action:
-              - xray:PutTraceSegments
-              - xray:PutTelemetryRecords
-            Resource: '*'
+            Action: sqs:SendMessage
+            Resource: !GetAtt MetricsQueue.Arn
       Events:
         JamfApi:
           Type: Api
@@ -369,10 +371,8 @@ Resources:
             Action: sns:Publish
             Resource: !Ref TokenActionTopic
           - Effect: Allow
-            Action:
-              - xray:PutTraceSegments
-              - xray:PutTelemetryRecords
-            Resource: '*'
+            Action: sqs:SendMessage
+            Resource: !GetAtt MetricsQueue.Arn
       Events:
         PostDefinition:
           Type: Api
@@ -406,10 +406,8 @@ Resources:
              - s3:PutObject
             Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
           - Effect: Allow
-            Action:
-              - xray:PutTraceSegments
-              - xray:PutTelemetryRecords
-            Resource: '*'
+            Action: sqs:SendMessage
+            Resource: !GetAtt MetricsQueue.Arn
       Events:
         PostVersion:
           Type: Api
@@ -445,12 +443,41 @@ Resources:
               - dynamodb:UpdateItem
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
           - Effect: Allow
-            Action:
-              - xray:PutTraceSegments
-              - xray:PutTelemetryRecords
-            Resource: '*'
+            Action: sqs:SendMessage
+            Resource: !GetAtt MetricsQueue.Arn
       Events:
         Every30:
             Type: Schedule
             Properties:
-              Schedule: 'cron(0/30 * * * ? *)'
+              Schedule: 'cron(*/30 * * * ? *)'
+
+# Metrics Functions
+
+  Metrics:
+    Type: AWS::Serverless::Function
+    Description:
+    Properties:
+      Runtime: python3.6
+      Handler: metrics.lambda_handler
+      CodeUri: ./src/functions/metrics
+      Timeout: 60
+      Environment:
+        Variables:
+          METRICS_NAMESPACE: !Ref MetricsNamespace
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action:
+              - sqs:DeleteMessage
+              - sqs:ReceiveMessage
+            Resource: !GetAtt MetricsQueue.Arn
+          - Effect: Allow
+            Action:
+              - cloudwatch:GetMetricData
+              - cloudwatch:PutMetricData
+            Resource: '*'
+      Events:
+        Every5:
+            Type: Schedule
+            Properties:
+              Schedule: 'cron(*/5 * * * ? *)'
