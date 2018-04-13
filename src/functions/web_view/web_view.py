@@ -1,7 +1,9 @@
 from datetime import datetime
+import json
 import logging
 from operator import itemgetter
 import os
+import time
 
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core import patch
@@ -24,6 +26,21 @@ jinja2_env = jinja2.Environment(
 template = jinja2_env.get_template('index.html')
 
 dynamodb = boto3.resource('dynamodb').Table(os.getenv('DEFINITIONS_TABLE'))
+sqs_queue = boto3.resource('sqs').Queue(os.getenv('METRICS_QUEUE_URL'))
+
+
+def send_metric(name, value, metric):
+    logger.info(f"Sending metric '{name}:{value}:{metric}' to queue")
+    sqs_queue.send_message(
+        MessageBody=json.dumps(
+            {
+                'name': name,
+                'value': value,
+                'metric': metric,
+                'timestamp': time.time()
+            }
+        )
+    )
 
 
 def scan_table():
@@ -55,4 +72,5 @@ def get_titles():
 
 
 def lambda_handler(event, context):
+    send_metric('WebEndpoints', '/', 'Viewed')
     return template.render(titles=get_titles())

@@ -77,7 +77,7 @@ def list_software_titles():
         logger.exception(f'DynamoDB: {error.response}')
         return response(f'Internal Server Error: {error}', 500)
 
-    send_metric('JamfEndpoints', '/jamf/v1/software', 'Visited')
+    send_metric('JamfEndpoints', '/jamf/v1/software', 'Viewed')
     return response(titles, 200)
 
 
@@ -95,10 +95,10 @@ def list_select_software_titles(path_parameter):
         return response(f'Internal Server Error: {error}', 500)
 
     for title in match_titles:
-        send_metric('SoftwareTitles', title, 'ReadCount')
+        send_metric('SoftwareTitles', title, 'SubscribedCount')
 
     send_metric(
-        'JamfEndpoints', '/jamf/v1/software/<Title,Title>', 'Visited')
+        'JamfEndpoints', '/jamf/v1/software/<Title,Title>', 'Viewed')
     return response(titles, 200)
 
 
@@ -112,7 +112,7 @@ def get_patch_definition(title):
 
     data = json.loads(f_obj.getvalue())
 
-    send_metric('JamfEndpoints', f'/jamf/v1/patch/<Title>', 'Visited')
+    send_metric('JamfEndpoints', '/jamf/v1/patch/<Title>', 'Viewed')
     return response(data, 200)
 
 

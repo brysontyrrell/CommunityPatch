@@ -1,5 +1,7 @@
+import json
 import logging
 import os
+import time
 
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core import patch
@@ -16,12 +18,32 @@ patch(['boto3'])
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 dynamodb = boto3.resource('dynamodb').Table(os.getenv('DEFINITIONS_TABLE'))
+sqs_queue = boto3.resource('sqs').Queue(os.getenv('METRICS_QUEUE_URL'))
+
+
+def send_metric(name, value, metric):
+    logger.info(f"Sending metric '{name}:{value}:{metric}' to queue")
+    sqs_queue.send_message(
+        MessageBody=json.dumps(
+            {
+                'name': name,
+                'value': value,
+                'metric': metric,
+                'timestamp': time.time()
+            }
+        )
+    )
 
 
 def generate_policy(principal_id, effect=None, resource=None, context=None):
     auth_response = {
         'principalId': principal_id
     }
+
+    if effect == 'Deny':
+        send_metric('Authorization', 'Forbidden', 'Count')
+    elif effect == 'Allow':
+        send_metric('Authorization', 'Success', 'Count')
 
     if effect and resource:
         auth_response['policyDocument'] = {
@@ -87,10 +109,12 @@ def lambda_handler(event, context):
     except (ValueError, AttributeError) as err:
         logger.error("Bad authorization header: "
                      f"{event['authorizationToken']}: {err}")
+        send_metric('Authorization', 'Unauthorized', 'Count')
         raise Exception('Unauthorized')
 
     if method != 'Bearer':
         logger.error(f"Bad authorization header: {event['authorizationToken']}")
+        send_metric('Authorization', 'Unauthorized', 'Count')
         raise Exception('Unauthorized')
 
     # 2 - Signature
@@ -99,6 +123,7 @@ def lambda_handler(event, context):
         decoded_token = jwt.decode(token, SECRET_KEY, algorithms='HS256')
     except jwt.InvalidTokenError as err:
         logger.error(f'Authentication failed: {err}')
+        send_metric('Authorization', 'Unauthorized', 'Count')
         raise Exception('Unauthorized')
 
     # 3 - Subject match

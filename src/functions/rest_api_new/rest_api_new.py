@@ -24,6 +24,22 @@ SNS_TOPIC_ARN_TOKEN = os.getenv('SNS_TOPIC_ARN_TOKEN')
 dynamodb = boto3.resource('dynamodb').Table(os.getenv('DEFINITIONS_TABLE'))
 s3_bucket = boto3.resource('s3').Bucket(os.getenv('DEFINITIONS_BUCKET'))
 sns_client = boto3.client('sns')
+sqs_queue = boto3.resource('sqs').Queue(os.getenv('METRICS_QUEUE_URL'))
+
+
+def send_metric(name, value, metric):
+    logger.info(f"Sending metric '{name}:{value}:{metric}' to queue")
+    sqs_queue.send_message(
+        MessageBody=json.dumps(
+            {
+                'name': name,
+                'value': value,
+                'metric': metric,
+                'timestamp': time.time()
+            }
+        )
+    )
+
 
 with open('schema_request.json', 'r') as f_obj:
     request_schema = json.load(f_obj)
@@ -41,6 +57,11 @@ def response(message, status_code):
 
     :rtype: dict
     """
+    if status_code < 300:
+        send_metric('RestApi', 'NewDefinition', 'SuccessfulCreate')
+    else:
+        send_metric('RestApi', 'NewDefinition', 'FailedCreate')
+
     return {
         'isBase64Encoded': False,
         'statusCode': status_code,
@@ -53,8 +74,7 @@ def hash_value(email, salt=None):
     if not salt:
         salt = os.urandom(16)
 
-    hashed = hashlib.pbkdf2_hmac(
-        'sha256', email.encode(), salt, 250000)
+    hashed = hashlib.pbkdf2_hmac('sha256', email.encode(), salt, 100000)
 
     return base64.b64encode(salt + hashed).decode()
 
@@ -90,12 +110,14 @@ def definition_from_url(data):
         return response('Bad Request: The definition URL did not return JSON '
                         'content', 400)
 
+    send_metric('RestApi', 'DefinitionFromUrl', 'Requests')
     return create_definition(patch_definition, data, synced=True)
 
 
 def definition_from_json(data):
     logger.info('Loading definition from request body')
     patch_definition = data.get('definition')
+    send_metric('RestApi', 'DefinitionFromJson', 'Requests')
     return create_definition(patch_definition, data)
 
 
@@ -105,6 +127,7 @@ def create_definition(patch_definition, data, synced=False):
         validate(patch_definition, definition_schema)
     except ValidationError as error:
         logger.error('The software title JSON failed validation')
+        send_metric('RestApi', 'TitleSchemaValidation', 'FailedCount')
         return response("Bad Request: The patch definition failed validation: "
                         f"{error.message} for path: "
                         f"/{'/'.join([str(i) for i in error.path])}", 400)
@@ -170,12 +193,13 @@ def create_definition(patch_definition, data, synced=False):
             MessageStructure='string',
         )
     except ClientError as error:
-        logger.exception('Error sending SNS notification to token manager')
+        logger.exception(
+            f'Error sending SNS notification to token manager: {error}')
     else:
         logger.info(f'SNS notification to token manager sent: {resp}')
 
-    return response('Software title created - check your email for your API '
-                    'token!', 201)
+    return response(
+        'Software title created - check your email for your API token!', 201)
 
 
 def lambda_handler(event, context):
@@ -188,6 +212,7 @@ def lambda_handler(event, context):
         validate(data, request_schema)
     except ValidationError as error:
         logger.error(f'The request JSON failed validation: {error.message}')
+        send_metric('RestApi', 'RequestSchemaValidation', 'FailedCount')
         return response(
             f'Bad Request: One or more required fields are missing', 400)
 

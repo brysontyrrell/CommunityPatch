@@ -3,6 +3,7 @@ import io
 import json
 import logging
 import os
+import time
 
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core import patch
@@ -20,6 +21,22 @@ patch(['boto3', 'requests'])
 
 dynamodb = boto3.resource('dynamodb').Table(os.getenv('DEFINITIONS_TABLE'))
 s3_bucket = boto3.resource('s3').Bucket(os.getenv('DEFINITIONS_BUCKET'))
+sqs_queue = boto3.resource('sqs').Queue(os.getenv('METRICS_QUEUE_URL'))
+
+
+def send_metric(name, value, metric):
+    logger.info(f"Sending metric '{name}:{value}:{metric}' to queue")
+    sqs_queue.send_message(
+        MessageBody=json.dumps(
+            {
+                'name': name,
+                'value': value,
+                'metric': metric,
+                'timestamp': time.time()
+            }
+        )
+    )
+
 
 with open('schema_full_definition.json', 'r') as f_obj:
     definition_schema = json.load(f_obj)
@@ -53,21 +70,23 @@ def definition_from_url(title_utl):
     try:
         resp.raise_for_status()
     except requests.HTTPError as error:
-        logger.error('An error occurred attempting to read the definition '
-                     f'URL: {error}')
+        logger.error(
+            f'An error occurred attempting to read the definition URL: {error}')
         return None
 
     try:
         patch_definition = resp.json()
     except json.JSONDecodeError:
-        logger.error('The definition URL did not return JSON content '
-                     f'{title_utl}')
+        logger.error(
+            f'The definition URL did not return JSON content {title_utl}')
         return None
 
     try:
         validate(patch_definition, definition_schema)
     except ValidationError as error:
-        logger.error('The downloaded software title JSON failed validation')
+        logger.error(
+            f'The downloaded software title JSON failed validation: {error}')
+        send_metric('RestApi', 'TitleSchemaValidation', 'FailedCount')
         return None
 
     return patch_definition
@@ -99,6 +118,7 @@ def lambda_handler(event, context):
 
             if not source_definition:
                 logger.error(f"The sync failed for URL '{title_url}'")
+                send_metric('DefinitionSync', 'DefinitionFromUrl', 'FailedCount')
                 # Update sync status for definition as failed
                 continue
         else:
@@ -124,6 +144,7 @@ def lambda_handler(event, context):
             logger.info('Definition hashes do not match: updating S3')
             # Store new definition content to S3
             # Write changes to currentVersion, lastModified to DynamoDB
+            send_metric('DefinitionSync', 'DefinitionUpdated', 'UpdateCount')
         else:
             logger.info('Definition hashes match: no updates')
 

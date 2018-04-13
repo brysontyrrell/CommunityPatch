@@ -20,6 +20,21 @@ SNS_TOPIC_ARN_EMAIL = os.getenv('SNS_TOPIC_ARN_EMAIL')
 
 dynamodb = boto3.resource('dynamodb').Table(os.getenv('DEFINITIONS_TABLE'))
 sns_client = boto3.client('sns')
+sqs_queue = boto3.resource('sqs').Queue(os.getenv('METRICS_QUEUE_URL'))
+
+
+def send_metric(name, value, metric):
+    logger.info(f"Sending metric '{name}:{value}:{metric}' to queue")
+    sqs_queue.send_message(
+        MessageBody=json.dumps(
+            {
+                'name': name,
+                'value': value,
+                'metric': metric,
+                'timestamp': time.time()
+            }
+        )
+    )
 
 
 def message_success(api_token, software_title_id):
@@ -96,11 +111,12 @@ def create_token(data):
                     'body_text': body_text
                 }
             ),
-            MessageStructure='string',
+            MessageStructure='string'
         )
     except ClientError as error:
         logger.exception('Error sending SNS notification to token manager')
     else:
+        send_metric('TokenManager', 'NewToken', 'SuccessCount')
         logger.info(f'SNS notification to token manager sent: {resp}')
 
 

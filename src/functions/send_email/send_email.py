@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import time
 
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core import patch
@@ -15,9 +16,25 @@ patch(['boto3'])
 SENDER_ADDRESS = os.getenv('SENDER_ADDRESS')
 
 ses_client = boto3.client('ses', region_name='us-east-1')
+sqs_queue = boto3.resource('sqs').Queue(os.getenv('METRICS_QUEUE_URL'))
+
+
+def send_metric(name, value, metric):
+    logger.info(f"Sending metric '{name}:{value}:{metric}' to queue")
+    sqs_queue.send_message(
+        MessageBody=json.dumps(
+            {
+                'name': name,
+                'value': value,
+                'metric': metric,
+                'timestamp': time.time()
+            }
+        )
+    )
 
 
 def send_email(data):
+    send_metric('EmailService', 'SentEmail', 'SentCount')
     return ses_client.send_email(
         Destination={
             'ToAddresses': [data['recipient_address']],
@@ -38,7 +55,7 @@ def send_email(data):
                 'Data': 'Community Patch API Token',
             },
         },
-        Source=f'Commuinity Patch <{SENDER_ADDRESS}>',
+        Source=f'Commuinity Patch <{SENDER_ADDRESS}>'
     )
 
 

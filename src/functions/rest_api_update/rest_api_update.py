@@ -3,6 +3,7 @@ import io
 import json
 import logging
 import os
+import time
 
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core import patch
@@ -18,6 +19,22 @@ patch(['boto3'])
 
 dynamodb = boto3.resource('dynamodb').Table(os.getenv('DEFINITIONS_TABLE'))
 s3_bucket = boto3.resource('s3').Bucket(os.getenv('DEFINITIONS_BUCKET'))
+sqs_queue = boto3.resource('sqs').Queue(os.getenv('METRICS_QUEUE_URL'))
+
+
+def send_metric(name, value, metric):
+    logger.info(f"Sending metric '{name}:{value}:{metric}' to queue")
+    sqs_queue.send_message(
+        MessageBody=json.dumps(
+            {
+                'name': name,
+                'value': value,
+                'metric': metric,
+                'timestamp': time.time()
+            }
+        )
+    )
+
 
 with open('schema_version.json', 'r') as f_obj:
     version_schema = json.load(f_obj)
@@ -32,6 +49,11 @@ def response(message, status_code):
 
     :rtype: dict
     """
+    if status_code < 300:
+        send_metric('RestApi', 'DefinitionUpdate', 'SuccessfulUpdate')
+    else:
+        send_metric('RestApi', 'DefinitionUpdate', 'FailedUpdate')
+
     return {
         'isBase64Encoded': False,
         'statusCode': status_code,
@@ -59,12 +81,17 @@ def get_index(params, patches):
 
     index = None
     if any(i in params.keys() for i in ['insert_after', 'insert_before']):
+
         if params.get('insert_after'):
+            send_metric('RestApi', 'DefinitionUpdate', 'InsertAfterUsed')
             index = next((index for (index, d) in enumerate(patches) if
                           d["version"] == params.get('insert_after')), None) + 1
+
         elif params.get('insert_before'):
+            send_metric('RestApi', 'DefinitionUpdate', 'InsertBeforeUsed')
             index = next((index for (index, d) in enumerate(patches) if
                           d["version"] == params.get('insert_before')), None)
+
         else:
             raise ValueError('Parameters have no values')
 
@@ -98,7 +125,8 @@ def lambda_handler(event, context):
     try:
         validate(data, version_schema)
     except ValidationError as error:
-        logger.error('The software title JSON failed validation')
+        logger.error('The version JSON failed validation')
+        send_metric('RestApi', 'VersionSchemaValidation', 'FailedCount')
         return response("Bad Request: The patch definition failed validation: "
                         f"{error.message} for path: "
                         f"/{'/'.join([str(i) for i in error.path])}", 400)
