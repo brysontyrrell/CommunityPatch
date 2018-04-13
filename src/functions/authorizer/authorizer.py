@@ -136,7 +136,10 @@ def lambda_handler(event, context):
     # 4 - Database lookup
     logger.info(f"Looking up title '{decoded_token['sub']}' in database")
     try:
-        resp = dynamodb.get_item(Key={'id': decoded_token['sub']})
+        resp = dynamodb.get_item(
+            Key={'id': decoded_token['sub']},
+            ProjectionExpression='id'
+        )
     except ClientError as error:
         logger.exception(f'DynamoDB: {error.response}')
         return generate_policy(token, 'Deny', method_arn)

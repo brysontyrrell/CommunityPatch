@@ -58,7 +58,7 @@ def response(body_data, status_code):
     }
 
 
-def scan_table():
+def scan_titles():
     results = dynamodb.scan()
     while True:
         for row in results['Items']:
@@ -70,9 +70,26 @@ def scan_table():
             break
 
 
+def get_title(title):
+    try:
+        resp = dynamodb.get_item(
+            Key={'id': title},
+            ProjectionExpression='title_summary'
+        )
+    except ClientError as error:
+        logger.exception(f'DynamoDB: {error.response}')
+        return None
+
+    if not resp.get('Item'):
+        logger.error(f"The title '{title}' was not found on lookup: {resp}")
+        return None
+
+    return resp['Item']['title_summary']
+
+
 def list_software_titles():
     try:
-        titles = [item['title_summary'] for item in scan_table()]
+        titles = [item['title_summary'] for item in scan_titles()]
     except ClientError as error:
         logger.exception(f'DynamoDB: {error.response}')
         return response(f'Internal Server Error: {error}', 500)
@@ -84,22 +101,16 @@ def list_software_titles():
 def list_select_software_titles(path_parameter):
     match_titles = path_parameter.split(',')
 
-    # THIS NEEDS TO BE SWITCHED TO USING MULTIPLE QUERY OPERATIONS AND NOT SCAN
-    try:
-        titles = [
-            item['title_summary'] for item in scan_table()
-            if item['id'] in match_titles
-        ]
-    except ClientError as error:
-        logger.exception(f'DynamoDB: {error.response}')
-        return response(f'Internal Server Error: {error}', 500)
-
+    title_list = list()
     for title in match_titles:
-        send_metric('SoftwareTitles', title, 'SubscribedCount')
+        result = get_title(title)
+        if result:
+            title_list.append(result)
+            send_metric('SoftwareTitles', title, 'SubscribedCount')
 
     send_metric(
         'JamfEndpoints', '/jamf/v1/software/<Title,Title>', 'Viewed')
-    return response(titles, 200)
+    return response(title_list, 200)
 
 
 def get_patch_definition(title):
