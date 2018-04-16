@@ -72,5 +72,5 @@ def get_titles():
 
 
 def lambda_handler(event, context):
-    send_metric('WebEndpoints', '/', 'Viewed')
+    send_metric('WebEndpoints', '/', 'Requested')
     return template.render(titles=get_titles())

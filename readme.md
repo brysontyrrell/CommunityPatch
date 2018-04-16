@@ -8,8 +8,6 @@ The source code for www.communitypatch.com - a free, community managed 'external
 
 ## Todo List
 
-- CloudWatch Metrics
-- AWS Xray
 - SNS Topics for bounce/complaint/delivery
     - Lambdas for processing
     - Auto-delete new definition on bounce-back/complaint
