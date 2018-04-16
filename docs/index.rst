@@ -5,105 +5,20 @@ CommunityPatch.com is a free, open-source patch server for Jamf Pro
 administrators to post patch definitions they maintain for the broader Jamf
 community to subscribe to.
 
-Create a New Software Title Definition
---------------------------------------
+Manage Titles with the API
+--------------------------
 
-.. note::
+If you want to contribute to the patch definitions available on CommunityPatch,
+read how to in the API documentation.
 
-   If you are creating a definition file for the first time, you can use the
-   `Patch-Starter-Script <https://github.com/brysontyrrell/Patch-Starter-Script>`_
-   available on GitHub.
+.. toctree::
+   :maxdepth: 1
 
-   The examples provided below will reference this script.
-
-``POST /api/v1/title``
-^^^^^^^^^^^^^^^^^^^^^^
-
-Create a new patch definition on CommunityPatch.com. You
-must provide a JSON payload containing an `author_name` and an `author_email` in
-addition to the full software title definition under the `definition` key.
-
-
-.. code-block:: json
-
-   {
-      "author_name": "<NAME>",
-      "author_email": "<EMAIL>",
-      "definition": {}
-   }
-
-The ``id`` and ``name`` values of the provided software title definition will be
-modified to include the ``author_name`` (as a unique identifier for the title).
-
-On success, an API token to manage this software title will be sent to the
-provided email address. The modified ``id`` and ``name`` values will be returned
-with the API request as well as included in the email.
-
-.. note::
-
-   Your email address is not stored in a usable format. It is saved as a hashed
-   value with the record of the software title. This hash is only used to
-   validate requests to reset the API token for a definition.
-
-An example using ``curl`` and ``Patch-Starter-Script``:
-
-.. code-block:: bash
-
-   curl https://beta.communitypatch.com/api/v1/title \
-      -X POST \
-      -d "{\"author_name\": \"Bryson\", \"author_email\": \"bryson.tyrrell@gmail.com\", \"definition\": $(python patchstarter.py /Applications/<APP> -p "<PUBLISHER>")}" \
-      -H 'Content-Type: application/json'
-
-Update a Software Title Version
--------------------------------
-
-``POST /api/v1/title/{title}/version``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Update a software title's definition with
-a new version. The JSON payload should only contain the data for the version.
-
-An example using ``curl`` and ``Patch-Starter-Script``:
-
-.. code-block:: bash
-
-   curl http://beta.communitypatch.com/api/v1/title/<APP>_Bryson/version \
-      -X POST \
-      -d "$(python patchstarter.py /Applications/<APP> --patch-only)" \
-      -H 'Content-Type: application/json' \
-      -H 'Authorization: Bearer <TOKEN>'
-
-The default behavior for this request is to add the new version as the
-``latest`` version of this definition.
-
-To specify where the the new version should be added in the ``patches`` array of
-the definition, use the ``insert_after=<VERSION>`` or
-``insert_before=<VERSION>`` parameters where ``VERSION`` is an existing version
-in the definition.
-
-.. code-block:: bash
-
-   curl 'http://beta.communitypatch.com/api/v1/title/<APP>_Bryson/version?insert_after=<VERSION>' \
-      -X POST \
-      -d "$(python patchstarter.py /Applications/<APP> --patch-only)" \
-      -H 'Content-Type: application/json' \
-      -H 'Authorization: Bearer <TOKEN>'
-
-   curl 'http://beta.communitypatch.com/api/v1/title/<APP>_Bryson/version?insert_before=<VERSION>' \
-      -X POST \
-      -d "$(python patchstarter.py /Applications/<APP> --patch-only)" \
-      -H 'Content-Type: application/json' \
-      -H 'Authorization: Bearer <TOKEN>'
-
-.. note::
-
-   If you make a request using the ``insert_after`` or ``insert_before`` options
-   and the placement of the new version is not at the ``latest`` position, the
-   definition's ``currentVersion`` will not be updated, but the ``lastModified``
-   timestamp will be.
+   api/create
+   api/update
 
 Add CommunityPatch.com to Jamf Pro
-==================================
+----------------------------------
 
 Configure as an External Patch Source in Jamf Pro.
 
@@ -121,7 +36,7 @@ Click the **+ New** button next to **Patch External Source**. On the next screen
 assign a name to your Patch Server. In the **SERVER** field enter the URL as
 shown::
 
-   communitypatch.com/jamf/v1
+   beta.communitypatch.com/jamf/v1
 
 In the **PORT** field enter ``443`` (can also be left blank).
 
