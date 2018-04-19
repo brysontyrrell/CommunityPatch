@@ -283,6 +283,8 @@ Resources:
       Runtime: python3.6
       Handler: web_view.lambda_handler
       CodeUri: ./src/functions/web_view
+      MemorySize: 512
+      Timeout: 15
       Environment:
         Variables:
           DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
@@ -314,6 +316,7 @@ Resources:
       Runtime: python3.6
       Handler: jamf_api.lambda_handler
       CodeUri: ./src/functions/jamf_api
+      MemorySize: 512
       Timeout: 15
       Environment:
         Variables:
@@ -351,7 +354,8 @@ Resources:
       Runtime: python3.6
       Handler: rest_api_new.lambda_handler
       CodeUri: ./src/functions/rest_api_new
-      Timeout: 10
+      MemorySize: 512
+      Timeout: 15
       Environment:
         Variables:
           DEFINITIONS_BUCKET: !Ref PatchDefinitionsBucket
@@ -389,7 +393,7 @@ Resources:
       Runtime: python3.6
       Handler: rest_api_update.lambda_handler
       CodeUri: ./src/functions/rest_api_update
-      Timeout: 10
+      MemorySize: 512
       Environment:
         Variables:
           DEFINITIONS_BUCKET: !Ref PatchDefinitionsBucket
@@ -426,6 +430,7 @@ Resources:
       Runtime: python3.6
       Handler: sync_definitions.lambda_handler
       CodeUri: ./src/functions/sync_definitions
+      MemorySize: 512
       Environment:
         Variables:
           DEFINITIONS_BUCKET: !Ref PatchDefinitionsBucket

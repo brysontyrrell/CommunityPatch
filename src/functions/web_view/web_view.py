@@ -1,4 +1,3 @@
-from datetime import datetime
 import json
 import logging
 from operator import itemgetter
@@ -63,9 +62,6 @@ def get_titles():
         title['is_synced'] = item.get('is_synced')
         title['last_sync_result'] = item.get('last_sync_result')
         title.update(item['title_summary'])
-        title['lastModified'] = datetime.strptime(
-            title['lastModified'],
-            '%Y-%m-%dT%H:%M:%SZ').strftime('%Y-%m-%d<br>%H:%M:%S UTC')
         title_list.append(title)
 
     return sorted(title_list, key=itemgetter('name'))

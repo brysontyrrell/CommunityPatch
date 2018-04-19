@@ -94,7 +94,6 @@ def list_software_titles():
         logger.exception(f'DynamoDB: {error.response}')
         return response(f'Internal Server Error: {error}', 500)
 
-    send_metric('JamfEndpoints', '/jamf/v1/software', 'Requested')
     return response(titles, 200)
 
 
@@ -108,8 +107,6 @@ def list_select_software_titles(path_parameter):
             title_list.append(result)
             send_metric('SoftwareTitles', title, 'SubscribedCount')
 
-    send_metric(
-        'JamfEndpoints', '/jamf/v1/software/<Title,Title>', 'Requested')
     return response(title_list, 200)
 
 
@@ -123,7 +120,6 @@ def get_patch_definition(title):
 
     data = json.loads(f_obj.getvalue())
 
-    send_metric('JamfEndpoints', '/jamf/v1/patch/<Title>', 'Requested')
     return response(data, 200)
 
 
@@ -136,12 +132,16 @@ def lambda_handler(event, context):
     logger.info(f'Generating response for {path}')
 
     if resource == '/jamf/v1/software':
+        send_metric('JamfEndpoints', '/jamf/v1/software', 'Requested')
         return list_software_titles()
 
     elif resource == '/jamf/v1/software/{proxy+}':
+        send_metric(
+            'JamfEndpoints', '/jamf/v1/software/<Title,Title>', 'Requested')
         return list_select_software_titles(parameter['proxy'])
 
     elif resource == '/jamf/v1/patch/{proxy+}':
+        send_metric('JamfEndpoints', '/jamf/v1/patch/<Title>', 'Requested')
         return get_patch_definition(parameter['proxy'])
 
     else:
