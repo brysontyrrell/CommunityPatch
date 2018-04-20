@@ -1,7 +1,13 @@
-# Stupid Simple Patch Server
+# CommunityPatch.com
 
-[![Documentation Status](https://readthedocs.org/projects/stupidsimplepatchserver/badge/?version=latest)](http://stupidsimplepatchserver.readthedocs.io/en/latest/?badge=latest)
+The source code for www.communitypatch.com - a free, community managed 'external patch source' for Jamf Pro.
 
-A serverless Patch Server for Jamf Pro using AWS.
+## Ideas
 
-Read the full documentation here at [ReadTheDocs](http://stupidsimplepatchserver.readthedocs.io/en/latest/).
+
+
+## Todo List
+
+- SNS Topics for bounce/complaint/delivery
+    - Lambdas for processing
+    - Auto-delete new definition on bounce-back/complaint

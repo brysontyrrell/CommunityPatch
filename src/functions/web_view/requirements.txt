@@ -1,0 +1,2 @@
+aws-xray-sdk==0.97
+Jinja2==2.10

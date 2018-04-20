@@ -1,32 +1,65 @@
-.. StupidSimplePatchServer documentation master file, created by
-   sphinx-quickstart on Thu Jan 25 17:27:37 2018.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+CommunityPatch.com
+==================
 
-Stupid Simple Patch Server
-==========================
+CommunityPatch.com is a free, open-source patch server for Jamf Pro
+administrators to post patch definitions they maintain for the broader Jamf
+community to subscribe to.
 
-The Supid Simple Patch Server (SSPS) is a serverless application to provide a patch server for Jamf Pro administrators.
+Manage Titles with the API
+--------------------------
 
-With the SSPS you can host your own software title patch definitions for custom patch policies. The SSPS also allows you to :doc:`subscribe to other administrators' patch definitions </managing/subscriptions>` and automate the management of your patch definitions using it's :doc:`REST API </documentation/rest_api>`.
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Deploy and Setup
-
-   setup/deploy_on_aws
-   setup/jamf_pro_setup
+If you want to contribute to the patch definitions available on CommunityPatch,
+read how to in the API documentation.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Managing Your Patch Server
 
-   managing/manage_definitions
-   managing/subscriptions
+   api/create
+   api/update
 
-.. toctree::
-   :maxdepth: 1
-   :caption: API Documentation
+Add CommunityPatch.com to Jamf Pro
+----------------------------------
 
-   documentation/patch_endpoints
-   documentation/rest_api
+Configure as an External Patch Source in Jamf Pro.
+
+.. note::
+
+    "External Patch Sources" is a feature of Jamf Pro v10.2+.
+
+To add your CommunityPatch.com as a **Patch External Source** in Jamf Pro, go to
+**Settings > Computer Management > Patch Management** in the management console.
+
+.. image:: _static/jamf_setup_01.png
+   :align: center
+
+Click the **+ New** button next to **Patch External Source**. On the next screen
+assign a name to your Patch Server. In the **SERVER** field enter the URL as
+shown::
+
+   beta.communitypatch.com/jamf/v1
+
+In the **PORT** field enter ``443`` (can also be left blank).
+
+Ensure the **Use SSL** box is checked.
+
+.. image:: _static/jamf_setup_02.png
+   :align: center
+
+After saving your settings, a **Test** button will be available on the Patch
+Server's page. Click it to verify Jamf Pro can connect to CommunityPatch.com and
+data is being received.
+
+.. image:: _static/jamf_setup_03.png
+   :align: center
+
+CommunityPatch.com will now be displayed on the **Patch Management** settings
+page.
+
+.. image:: _static/jamf_setup_04.png
+   :align: center
+
+You will now be able to choose software titles to subscribe to from the
+**Computers > Patch Management > Software Titles** list.
+
+.. image:: _static/jamf_setup_05.png
+   :align: center

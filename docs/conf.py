@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# StupidSimplePatchServer documentation build configuration file, created by
+# CommunityPatch documentation build configuration file, created by
 # sphinx-quickstart on Thu Jan 25 17:27:37 2018.
 #
 # This file is execfile()d with the current directory set to its
@@ -49,7 +49,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'StupidSimplePatchServer'
+project = 'CommunityPatch.com'
 copyright = '2018, Bryson Tyrrell'
 author = 'Bryson Tyrrell'
 
@@ -116,7 +116,7 @@ html_sidebars = {
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'StupidSimplePatchServerdoc'
+htmlhelp_basename = 'CommunityPatchdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -143,7 +143,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'StupidSimplePatchServer.tex', 'StupidSimplePatchServer Documentation',
+    (master_doc, 'CommunityPatch.tex', 'CommunityPatch.com Documentation',
      'Bryson Tyrrell', 'manual'),
 ]
 
@@ -153,7 +153,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'stupidsimplepatchserver', 'StupidSimplePatchServer Documentation',
+    (master_doc, 'CommunityPatch', 'CommunityPatch.com Documentation',
      [author], 1)
 ]
 
@@ -164,8 +164,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'StupidSimplePatchServer', 'StupidSimplePatchServer Documentation',
-     author, 'StupidSimplePatchServer', 'One line description of project.',
+    (master_doc, 'CommunityPatch', 'CommunityPatch.com Documentation',
+     author, 'CommunityPatch', 'One line description of project.',
      'Miscellaneous'),
 ]
 

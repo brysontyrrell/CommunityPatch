@@ -1,124 +1,488 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 Description: A serverless Patch Server for Jamf Pro using AWS.
 
+Parameters:
+
+  CertificateId:
+    Type: String
+    Description: The UUID for the certificate to use for the custom domain.
+
+  DomainName:
+    Type: String
+    Description: The custom domain name for the API.
+
+  EmailSenderAddress:
+    Type: String
+    Description: The "from" address for email notifications from this service.
+
+  TokenSecretKey:
+    Type: String
+    Description: The key used for generating and validating API tokens.
+
+  MetricsNamespace:
+    Type: String
+    Description: The label for the namespace in CloudWatch Metrics.
+
+Globals:
+  Function:
+    Runtime: python3.6
+    Tracing: Active
+    Environment:
+      Variables:
+        METRICS_QUEUE_URL: !Ref MetricsQueue
+
 Resources:
-  PatchServerFunc:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: patch_server.lambda_handler
-      Runtime: python3.6
-      CodeUri: ./PatchServerFunc
-      Environment:
-        Variables:
-          S3_BUCKET: !Ref Bucket
-      Policies:
-        Statement:
-          - Effect: Allow
-            Action: s3:ListBucket
-            Resource: !Sub 'arn:aws:s3:::${Bucket}'
-          - Effect: Allow
-            Action: s3:GetObject
-            Resource: !Sub 'arn:aws:s3:::${Bucket}/*'
-      Events:
-        Software:
-          Type: Api
-          Properties:
-            Path: /software
-            Method: get
-        SoftwareTitles:
-          Type: Api
-          Properties:
-            Path: /software/{proxy+}
-            Method: get
-        PatchTitle:
-          Type: Api
-          Properties:
-            Path: /patch/{proxy+}
-            Method: get
 
-  SubscriptionFunc:
-    Type: AWS::Serverless::Function
+# API Gateway
+
+  ApiGateway:
+    Type: AWS::Serverless::Api
     Properties:
-      Handler: subscription.lambda_handler
+      StageName: Prod
+      DefinitionBody:
+        swagger: "2.0"
+        info:
+          title: !Ref AWS::StackName
+
+        securityDefinitions:
+          authorizer:
+            type: apiKey
+            name: Authorization
+            in: header
+            x-amazon-apigateway-authtype: custom
+            x-amazon-apigateway-authorizer:
+              type: token
+              authorizerUri:
+                Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Authorizer.Arn}/invocations
+              authorizerResultTtlInSeconds: 5
+
+        paths:
+          "/":
+            get:
+              x-amazon-apigateway-integration:
+                contentHandling: "CONVERT_TO_TEXT"
+                type: aws
+                httpMethod: post
+                uri:
+                  Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebView.Arn}/invocations"
+                passthroughBehavior: "when_no_match"
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Content-Type: "'text/html'"
+                    responseTemplates:
+                      text/html: "$input.path('$')"
+              produces:
+                - "text/html"
+              responses:
+                "200":
+                  description: "200 response"
+                  headers:
+                    Content-Type:
+                      type: "string"
+
+          "/api/v1/title":
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RestApiNew.Arn}/invocations
+              responses: {}
+
+          "/api/v1/title/{title}/version":
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RestApiUpdate.Arn}/invocations
+              responses: {}
+              security:
+                - authorizer: []
+
+          "/jamf/v1/software":
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${JamfApi.Arn}/invocations
+              responses: {}
+
+          "/jamf/v1/software/{proxy+}":
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${JamfApi.Arn}/invocations
+              responses: {}
+
+          "/jamf/v1/patch/{proxy+}":
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${JamfApi.Arn}/invocations
+              responses: {}
+
+  ApiCustomDomain:
+    Type: "AWS::ApiGateway::DomainName"
+    Properties:
+      RegionalCertificateArn: !Sub arn:aws:acm:${AWS::Region}:${AWS::AccountId}:certificate/${CertificateId}
+      DomainName: !Ref DomainName
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+
+  ApiBasePath:
+    Type: "AWS::ApiGateway::BasePathMapping"
+    DependsOn:
+      - ApiGateway
+      - ApiGatewayProdStage
+      - ApiCustomDomain
+    Properties:
+      DomainName: !Ref ApiCustomDomain
+      RestApiId: !Ref ApiGateway
+      Stage: Prod
+
+# DynamoDB Tables
+
+  PatchDefinitionsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+# S3 Buckets
+
+  PatchDefinitionsBucket:
+    Type: AWS::S3::Bucket
+
+# SNS Topics
+
+  TokenActionTopic:
+    Type: AWS::SNS::Topic
+
+  SendEmailTopic:
+    Type: AWS::SNS::Topic
+
+# SQS Queues
+
+  MetricsQueue:
+    Type: AWS::SQS::Queue
+
+# Token Functions
+
+  TokenManager:
+    Type: AWS::Serverless::Function
+    Description: Creates and rotates tokens.
+    Properties:
       Runtime: python3.6
-      CodeUri: ./SubscriptionFunc
-      Timeout: 180
+      Handler: token_manager.lambda_handler
+      CodeUri: ./src/functions/token_manager
       Environment:
         Variables:
-          S3_BUCKET: !Ref Bucket
-          TABLE_NAME: !Ref DynamoDBTable
+          DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
+          SECRET_KEY: !Ref TokenSecretKey
+          SNS_TOPIC_ARN_EMAIL: !Ref SendEmailTopic
       Policies:
         Statement:
           - Effect: Allow
             Action:
-             - dynamodb:DeleteItem
-             - dynamodb:GetItem
-             - dynamodb:PutItem
-             - dynamodb:Scan
-            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}'
+             - dynamodb:UpdateItem
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
+          - Effect: Allow
+            Action: sns:Publish
+            Resource: !Ref SendEmailTopic
+          - Effect: Allow
+            Action: sqs:SendMessage
+            Resource: !GetAtt MetricsQueue.Arn
+      Events:
+        SnsTopic:
+          Type: SNS
+          Properties:
+            Topic: !Ref TokenActionTopic
+
+  Authorizer:
+    Type: AWS::Serverless::Function
+    Description: Token validation for Uploader.
+    Properties:
+      Runtime: python3.6
+      Handler: authorizer.lambda_handler
+      CodeUri: ./src/functions/authorizer
+      Environment:
+        Variables:
+          DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
+          SECRET_KEY: !Ref TokenSecretKey
+      Policies:
+        Statement:
           - Effect: Allow
             Action:
-             - s3:DeleteObject
-             - s3:PutObject
-            Resource: !Sub 'arn:aws:s3:::${Bucket}/*'
-      Events:
-        Subscribe:
-          Type: Api
-          Properties:
-            Path: /subscribe
-            Method: post
-        UnSubscribe:
-          Type: Api
-          Properties:
-            Path: /unsubscribe/{title}
-            Method: post
-        SyncTimer:
-          Type: Schedule
-          Properties:
-            Schedule: rate(5 minutes)
+              - dynamodb:GetItem
+              - dynamodb:UpdateItem
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
+          - Effect: Allow
+            Action: sqs:SendMessage
+            Resource: !GetAtt MetricsQueue.Arn
 
-  RestApiFunc:
-    Type: AWS::Serverless::Function
+  AuthorizerPermissions:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - ApiGateway
+      - Authorizer
     Properties:
-      Handler: rest_api.lambda_handler
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: Authorizer
+      Principal: apigateway.amazonaws.com
+
+# Email Functions
+
+  SendEmail:
+    Type: AWS::Serverless::Function
+    Description:
+    Properties:
       Runtime: python3.6
-      CodeUri: ./RestApiFunc
+      Handler: send_email.lambda_handler
+      CodeUri: ./src/functions/send_email
       Timeout: 10
       Environment:
         Variables:
-          S3_BUCKET: !Ref Bucket
-          TABLE_NAME: !Ref DynamoDBTable
+          SENDER_ADDRESS: !Ref EmailSenderAddress
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action: ses:SendEmail
+            Resource: '*'
+            Condition:
+              StringEquals:
+                ses:FromAddress: !Ref EmailSenderAddress
+          - Effect: Allow
+            Action: sqs:SendMessage
+            Resource: !GetAtt MetricsQueue.Arn
+      Events:
+        SnsTopic:
+          Type: SNS
+          Properties:
+            Topic: !Ref SendEmailTopic
+
+
+
+# Web View Function: /
+
+  WebView:
+    Type: AWS::Serverless::Function
+    Description: Renders the main web page displaying all available titles.
+    Properties:
+      Runtime: python3.6
+      Handler: web_view.lambda_handler
+      CodeUri: ./src/functions/web_view
+      MemorySize: 512
+      Timeout: 15
+      Environment:
+        Variables:
+          DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
       Policies:
         Statement:
           - Effect: Allow
             Action:
              - dynamodb:GetItem
-            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTable}'
+             - dynamodb:Scan
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
+          - Effect: Allow
+            Action: sqs:SendMessage
+            Resource: !GetAtt MetricsQueue.Arn
+      Events:
+        get:
+          Type: Api
+          Properties:
+            Path: /
+            Method: get
+            RestApiId:
+                Ref: ApiGateway
+
+# Jamf Pro API: /jamf/v1
+
+  JamfApi:
+    Type: AWS::Serverless::Function
+    Description: Handles Jamf Pro requests for patch definitions.
+    Properties:
+      Runtime: python3.6
+      Handler: jamf_api.lambda_handler
+      CodeUri: ./src/functions/jamf_api
+      MemorySize: 512
+      Timeout: 15
+      Environment:
+        Variables:
+          DEFINITIONS_BUCKET: !Ref PatchDefinitionsBucket
+          DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
+      Policies:
+        Statement:
           - Effect: Allow
             Action:
-             - s3:GetObject
+             - dynamodb:GetItem
+             - dynamodb:Scan
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
+          - Effect: Allow
+            Action: sqs:SendMessage
+            Resource: !GetAtt MetricsQueue.Arn
+      Events:
+        JamfApi:
+          Type: Api
+          Properties:
+            Path: /jamf/v1/{proxy+}
+            Method: get
+            RestApiId:
+                Ref: ApiGateway
+
+
+# Rest API: /api/v1
+
+  RestApiNew:
+    Type: AWS::Serverless::Function
+    Description: Handles API requests for creating software title definitions.
+    Properties:
+      Runtime: python3.6
+      Handler: rest_api_new.lambda_handler
+      CodeUri: ./src/functions/rest_api_new
+      MemorySize: 512
+      Timeout: 15
+      Environment:
+        Variables:
+          DEFINITIONS_BUCKET: !Ref PatchDefinitionsBucket
+          DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
+          SNS_TOPIC_ARN_TOKEN: !Ref TokenActionTopic
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action:
              - s3:PutObject
-            Resource: !Sub 'arn:aws:s3:::${Bucket}/*'
+            Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
+          - Effect: Allow
+            Action:
+             - dynamodb:PutItem
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
+          - Effect: Allow
+            Action: sns:Publish
+            Resource: !Ref TokenActionTopic
+          - Effect: Allow
+            Action: sqs:SendMessage
+            Resource: !GetAtt MetricsQueue.Arn
       Events:
         PostDefinition:
           Type: Api
           Properties:
-            Path: /api/title
+            Path: /api/v1/title
             Method: post
-        PutDefinition:
-          Type: Api
-          Properties:
-            Path: /api/title/{title}
-            Method: put
+            RestApiId:
+                Ref: ApiGateway
+
+  RestApiUpdate:
+    Type: AWS::Serverless::Function
+    Description: Handles API requests for updating patch definitions.
+    Properties:
+      Runtime: python3.6
+      Handler: rest_api_update.lambda_handler
+      CodeUri: ./src/functions/rest_api_update
+      MemorySize: 512
+      Environment:
+        Variables:
+          DEFINITIONS_BUCKET: !Ref PatchDefinitionsBucket
+          DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:UpdateItem
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
+          - Effect: Allow
+            Action:
+             - s3:GetObject
+             - s3:PutObject
+            Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
+          - Effect: Allow
+            Action: sqs:SendMessage
+            Resource: !GetAtt MetricsQueue.Arn
+      Events:
         PostVersion:
           Type: Api
           Properties:
-            Path: /api/title/{title}/version
+            Path: /api/v1/title/{title}/version
             Method: post
+            RestApiId:
+                Ref: ApiGateway
 
-  Bucket:
-    Type: AWS::S3::Bucket
+# Title Sync Functions
 
-  DynamoDBTable:
-    Type: AWS::Serverless::SimpleTable
+  TitleSync:
+    Type: AWS::Serverless::Function
+    Description:
+    Properties:
+      Runtime: python3.6
+      Handler: sync_definitions.lambda_handler
+      CodeUri: ./src/functions/sync_definitions
+      MemorySize: 512
+      Environment:
+        Variables:
+          DEFINITIONS_BUCKET: !Ref PatchDefinitionsBucket
+          DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+            Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
+          - Effect: Allow
+            Action:
+              - dynamodb:Scan
+              - dynamodb:UpdateItem
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PatchDefinitionsTable}'
+          - Effect: Allow
+            Action: sqs:SendMessage
+            Resource: !GetAtt MetricsQueue.Arn
+      Events:
+        Every30:
+            Type: Schedule
+            Properties:
+              Schedule: 'cron(*/30 * * * ? *)'
+
+# Metrics Functions
+
+  Metrics:
+    Type: AWS::Serverless::Function
+    Description:
+    Properties:
+      Runtime: python3.6
+      Handler: metrics.lambda_handler
+      CodeUri: ./src/functions/metrics
+      Timeout: 60
+      Environment:
+        Variables:
+          METRICS_NAMESPACE: !Ref MetricsNamespace
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action:
+              - sqs:DeleteMessage
+              - sqs:ReceiveMessage
+            Resource: !GetAtt MetricsQueue.Arn
+          - Effect: Allow
+            Action:
+              - cloudwatch:GetMetricData
+              - cloudwatch:PutMetricData
+            Resource: '*'
+      Events:
+        Every5:
+            Type: Schedule
+            Properties:
+              Schedule: 'cron(*/5 * * * ? *)'
