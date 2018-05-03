@@ -19,6 +19,7 @@ logger.setLevel(logging.INFO)
 xray_recorder.configure(service='CommunityPatch')
 patch(['boto3', 'requests'])
 
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 SNS_TOPIC_ARN_TOKEN = os.getenv('SNS_TOPIC_ARN_TOKEN')
 
 dynamodb = boto3.resource('dynamodb').Table(os.getenv('DEFINITIONS_TABLE'))
@@ -101,7 +102,7 @@ def definition_from_url(data):
     try:
         resp.raise_for_status()
     except requests.HTTPError as error:
-        return response(f'An error occurred attempting to read the definition '
+        return response('An error occurred attempting to read the definition '
                         f'URL: {error}', 400)
 
     try:
@@ -114,6 +115,89 @@ def definition_from_url(data):
     return create_definition(patch_definition, data, synced=True)
 
 
+def definitions_from_github(data):
+    logger.info('Loading definitions from GitHub Repository')
+    github_url = os.path.join(
+        'https://api.github.com', 'repos', data['github_repo'], 'contents')
+
+    resp = requests.get(
+        github_url,
+        headers={
+            'Accept': 'application/json',
+            'Authorization': f'token {GITHUB_TOKEN}'
+        },
+        timeout=3
+    )
+
+    try:
+        resp.raise_for_status()
+    except requests.HTTPError as error:
+        return response('An error occurred attempting to read the GitHub '
+                        f'repository:  {error}', 400)
+
+    definitions_to_download = list()
+
+    for file in resp.json():
+        if os.path.splitext(file['name'])[-1] == '.json':
+            definitions_to_download.append(file)
+
+    success = list()
+    failed = list()
+
+    hashed_email = hash_value(data['author_email'])
+
+    for file in definitions_to_download:
+        file_resp = requests.get(
+            file['download_url'],
+            headers={
+                'Accept': 'application/json',
+                'Authorization': f'token {GITHUB_TOKEN}'
+            },
+            timeout=3
+        )
+
+        try:
+            file_resp.raise_for_status()
+        except requests.HTTPError as error:
+            return response('An error occurred attempting to read the '
+                            f"GitHub file {file['name']}:  {error}", 400)
+
+        try:
+            patch_definition = file_resp.json()
+        except json.JSONDecodeError:
+            logger.warning(f"The definition file {file['name']} could not be "
+                           f"loaded as JSON")
+            failed.append(file)
+            continue
+
+        result = create_definition(patch_definition, data, True, hashed_email)
+
+        success.append(file) if result['statusCode'] == 201 \
+            else failed.append(file)
+
+    response_dict = dict()
+    if success:
+        response_dict['success'] = [i['name'] for i in success]
+        response_dict['message'] = \
+            'Titles successfully synced from GitHub repository!'
+
+    if failed:
+        response_dict['failed'] = [i['name'] for i in failed]
+        response_dict['message'] = \
+            'Some titles in this GitHub repository failed to sync.'
+
+    if not success:
+        response_dict['message'] = \
+            'No titles could be synced from this GitHub repository!'
+
+    return {
+        'isBase64Encoded': False,
+        'statusCode': 201,
+        'body': json.dumps(response_dict),
+        'headers': {'Content-Type': 'application/json'}
+    }
+
+
 def definition_from_json(data):
     logger.info('Loading definition from request body')
     patch_definition = data.get('definition')
@@ -121,7 +205,7 @@ def definition_from_json(data):
     return create_definition(patch_definition, data)
 
 
-def create_definition(patch_definition, data, synced=False):
+def create_definition(patch_definition, data, synced=False, hashed_email=None):
     """Create the definition in DynamoDB and S3"""
     try:
         validate(patch_definition, definition_schema)
@@ -142,7 +226,8 @@ def create_definition(patch_definition, data, synced=False):
             Item={
                 "id": patch_definition['id'],
                 "author_name": data['author_name'],
-                "author_email_hash": hash_value(data['author_email']),
+                "author_email_hash":
+                    hashed_email or hash_value(data['author_email']),
                 "token_id": None,
                 "is_synced": synced,
                 "sync_url": data.get('definition_url'),
@@ -218,5 +303,9 @@ def lambda_handler(event, context):
 
     if data.get('definition'):
         return definition_from_json(data)
+
     elif data.get('definition_url'):
         return definition_from_url(data)
+
+    elif data.get('github_repo'):
+        return definitions_from_github(data)

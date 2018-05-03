@@ -16,9 +16,13 @@ Parameters:
     Type: String
     Description: The "from" address for email notifications from this service.
 
-  TokenSecretKey:
+  ApiTokenSecretKey:
     Type: String
     Description: The key used for generating and validating API tokens.
+
+  GitHubApiToken:
+    Type: String
+    Description: Personal API Token for GitHub repo sync integration.
 
   MetricsNamespace:
     Type: String
@@ -189,7 +193,7 @@ Resources:
       Environment:
         Variables:
           DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
-          SECRET_KEY: !Ref TokenSecretKey
+          SECRET_KEY: !Ref ApiTokenSecretKey
           SNS_TOPIC_ARN_EMAIL: !Ref SendEmailTopic
       Policies:
         Statement:
@@ -219,7 +223,7 @@ Resources:
       Environment:
         Variables:
           DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
-          SECRET_KEY: !Ref TokenSecretKey
+          SECRET_KEY: !Ref ApiTokenSecretKey
       Policies:
         Statement:
           - Effect: Allow
@@ -360,6 +364,7 @@ Resources:
         Variables:
           DEFINITIONS_BUCKET: !Ref PatchDefinitionsBucket
           DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
+          GITHUB_TOKEN: !Ref GitHubApiToken
           SNS_TOPIC_ARN_TOKEN: !Ref TokenActionTopic
       Policies:
         Statement:
