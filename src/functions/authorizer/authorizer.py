@@ -138,7 +138,7 @@ def lambda_handler(event, context):
     try:
         resp = dynamodb.get_item(
             Key={'id': decoded_token['sub']},
-            ProjectionExpression='id'
+            ProjectionExpression='id,token_id,is_synced'
         )
     except ClientError as error:
         logger.exception(f'DynamoDB: {error.response}')
