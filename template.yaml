@@ -134,6 +134,33 @@ Resources:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${JamfApi.Arn}/invocations
               responses: {}
 
+          "/jamf2/v1/software":
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${JamfApiPrototype.Arn}/invocations
+              responses: {}
+
+          "/jamf2/v1/software/{proxy+}":
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${JamfApiPrototype.Arn}/invocations
+              responses: {}
+
+          "/jamf2/v1/patch/{proxy+}":
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${JamfApiPrototype.Arn}/invocations
+              responses: {}
+
   ApiCustomDomain:
     Type: "AWS::ApiGateway::DomainName"
     Properties:
@@ -348,6 +375,34 @@ Resources:
             RestApiId:
                 Ref: ApiGateway
 
+  JamfApiPrototype:
+    Type: AWS::Serverless::Function
+    Description: Jamf Pro endpoints using S3 Select.
+    Properties:
+      Runtime: python3.6
+      Handler: jamf_api_proto.lambda_handler
+      CodeUri: ./src/functions/jamf_api_proto
+      MemorySize: 512
+      Timeout: 15
+      Environment:
+        Variables:
+          DEFINITIONS_BUCKET: !Ref PatchDefinitionsBucket
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action: s3:ListBucket
+            Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}'
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub 'arn:aws:s3:::${PatchDefinitionsBucket}/*'
+      Events:
+        JamfApi:
+          Type: Api
+          Properties:
+            Path: /jamf2/v1/{proxy+}
+            Method: get
+            RestApiId:
+                Ref: ApiGateway
 
 # Rest API: /api/v1
 
