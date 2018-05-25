@@ -216,7 +216,7 @@ Resources:
     Properties:
       Runtime: python3.6
       Handler: token_manager.lambda_handler
-      CodeUri: .src/functions/beta1/token_manager
+      CodeUri: ./src/beta1/token_manager
       Environment:
         Variables:
           DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
@@ -246,7 +246,7 @@ Resources:
     Properties:
       Runtime: python3.6
       Handler: authorizer.lambda_handler
-      CodeUri: .src/functions/beta1/authorizer
+      CodeUri: ./src/beta1/authorizer
       Environment:
         Variables:
           DEFINITIONS_TABLE: !Ref PatchDefinitionsTable
@@ -281,7 +281,7 @@ Resources:
     Properties:
       Runtime: python3.6
       Handler: send_email.lambda_handler
-      CodeUri: .src/functions/beta1/send_email
+      CodeUri: ./src/beta1/send_email
       Timeout: 10
       Environment:
         Variables:
@@ -313,7 +313,7 @@ Resources:
     Properties:
       Runtime: python3.6
       Handler: web_view.lambda_handler
-      CodeUri: .src/functions/beta1/web_view
+      CodeUri: ./src/beta1/web_view
       MemorySize: 512
       Timeout: 15
       Environment:
@@ -346,7 +346,7 @@ Resources:
     Properties:
       Runtime: python3.6
       Handler: jamf_api.lambda_handler
-      CodeUri: .src/functions/beta1/jamf_api
+      CodeUri: ./src/beta1/jamf_api
       MemorySize: 512
       Timeout: 15
       Environment:
@@ -381,7 +381,7 @@ Resources:
     Properties:
       Runtime: python3.6
       Handler: jamf_api_proto.lambda_handler
-      CodeUri: .src/functions/beta1/jamf_api_proto
+      CodeUri: ./src/beta1/jamf_api_proto
       MemorySize: 512
       Timeout: 15
       Environment:
@@ -412,7 +412,7 @@ Resources:
     Properties:
       Runtime: python3.6
       Handler: rest_api_new.lambda_handler
-      CodeUri: .src/functions/beta1/rest_api_new
+      CodeUri: ./src/beta1/rest_api_new
       MemorySize: 512
       Timeout: 15
       Environment:
@@ -452,7 +452,7 @@ Resources:
     Properties:
       Runtime: python3.6
       Handler: rest_api_update.lambda_handler
-      CodeUri: .src/functions/beta1/rest_api_update
+      CodeUri: ./src/beta1/rest_api_update
       MemorySize: 512
       Environment:
         Variables:
@@ -489,7 +489,7 @@ Resources:
     Properties:
       Runtime: python3.6
       Handler: sync_definitions.lambda_handler
-      CodeUri: .src/functions/beta1/sync_definitions
+      CodeUri: ./src/beta1/sync_definitions
       MemorySize: 512
       Environment:
         Variables:
@@ -524,7 +524,7 @@ Resources:
     Properties:
       Runtime: python3.6
       Handler: metrics.lambda_handler
-      CodeUri: .src/functions/beta1/metrics
+      CodeUri: ./src/beta1/metrics
       Timeout: 60
       Environment:
         Variables:

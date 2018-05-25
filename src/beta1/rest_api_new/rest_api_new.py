@@ -264,7 +264,7 @@ def create_definition(patch_definition, data, synced=False, hashed_email=None):
     else:
         logger.info(f'Wrote file to S3: {resp}')
 
-    logging.info('Sending SNS notification to token manager')
+    logging.info('Sending SNS notification to token api_create_auth')
     try:
         resp = sns_client.publish(
             TopicArn=SNS_TOPIC_ARN_TOKEN,
@@ -279,9 +279,9 @@ def create_definition(patch_definition, data, synced=False, hashed_email=None):
         )
     except ClientError as error:
         logger.exception(
-            f'Error sending SNS notification to token manager: {error}')
+            f'Error sending SNS notification to token api_create_auth: {error}')
     else:
-        logger.info(f'SNS notification to token manager sent: {resp}')
+        logger.info(f'SNS notification to token api_create_auth sent: {resp}')
 
     return response(
         'Software title created - check your email for your API token!', 201)

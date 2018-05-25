@@ -101,7 +101,7 @@ def create_token(data):
         body_html, body_text = message_success(
             api_token, data['software_title_id'])
 
-    logging.info('Sending SNS notification to token manager')
+    logging.info('Sending SNS notification to token api_create_auth')
     try:
         resp = sns_client.publish(
             TopicArn=SNS_TOPIC_ARN_EMAIL,
@@ -115,10 +115,10 @@ def create_token(data):
             MessageStructure='string'
         )
     except ClientError as error:
-        logger.exception('Error sending SNS notification to token manager')
+        logger.exception('Error sending SNS notification to token api_create_auth')
     else:
         send_metric('TokenManager', 'NewToken', 'SuccessCount')
-        logger.info(f'SNS notification to token manager sent: {resp}')
+        logger.info(f'SNS notification to token api_create_auth sent: {resp}')
 
 
 def lambda_handler(event, context):
