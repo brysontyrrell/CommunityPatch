@@ -22,6 +22,26 @@ Parameters:
 
 Resources:
 
+# KMS Keys
+
+  EncryptionKey:
+    Type: "AWS::KMS::Key"
+    Properties:
+      Description: KMS key used to encrypt and decrypt data encryption keys.
+      KeyPolicy:
+        Statement:
+          Effect: Allow
+          Principal:
+            AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+          Action: kms:*
+          Resource: "*"
+
+  EncryptionKeyAlias:
+    Type: "AWS::KMS::Alias"
+    Properties:
+      AliasName: alias/communitypatch
+      TargetKeyId: !Ref EncryptionKey
+
 # DynamoDB Tables
 
   ContributorsTable:
@@ -180,6 +200,10 @@ Resources:
           - Effect: Allow
             Action: sns:Publish
             Resource: !Ref SendEmailTopic
+#          - Effect: Allow
+#            Action:
+#              - kms:Encrypt
+#            Resource: !GetAtt EncryptionKey.Arn
       Events:
         ApiContributorRegistration:
           Type: Api
