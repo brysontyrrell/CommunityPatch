@@ -24,18 +24,17 @@ CONTRIBUTORS_TABLE = os.getenv('CONTRIBUTORS_TABLE')
 DOMAIN_NAME = os.getenv('DOMAIN_NAME')
 EMAIL_SNS_TOPIC = os.getenv('EMAIL_SNS_TOPIC')
 
-ssm_client = boto3.client('ssm')
-
-with open('schemas/schema_request.json', 'r') as f_obj:
-    schema_request = json.load(f_obj)
-
 
 def get_database_key(name):
+    ssm_client = boto3.client('ssm')
     resp = ssm_client.get_parameter(Name=name, WithDecryption=True)
     return resp['Parameter']['Value']
 
 
 fernet = Fernet(get_database_key(os.getenv('DB_KEY_PARAMETER')))
+
+with open('schemas/schema_request.json', 'r') as f_obj:
+    schema_request = json.load(f_obj)
 
 
 def response(message, status_code):
@@ -79,15 +78,6 @@ def send_email(recipient, name, url):
     except ClientError as error:
         logger.exception(f'Error sending SNS notification: {error}')
         raise
-
-
-def hash_value(email, salt=None):
-    if not salt:
-        salt = os.urandom(16)
-
-    hashed = hashlib.pbkdf2_hmac('sha256', email.encode(), salt, 100000)
-
-    return base64.b64encode(salt + hashed).decode()
 
 
 def write_new_contributor(id_, name, email, verification_code):

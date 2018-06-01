@@ -98,8 +98,14 @@ Resources:
               x-amazon-apigateway-integration:
                 httpMethod: post
                 type: aws_proxy
-                uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiContributorRegistration.Arn}/invocations
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiContributorRegistration.Arn}/invocations'
+              responses: {}
+          "/api/v1/verify":
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiContributorVerification.Arn}/invocations'
               responses: {}
 
 # CloudFront Distribution
@@ -189,7 +195,7 @@ Resources:
         Statement:
           - Effect: Allow
             Action: dynamodb:PutItem
-            Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ContributorsTable}
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ContributorsTable}'
           - Effect: Allow
             Action: sns:Publish
             Resource: !Ref SendEmailTopic
@@ -208,9 +214,44 @@ Resources:
             RestApiId:
                 Ref: ApiGateway
 
+  ApiContributorVerification:
+    Type: AWS::Serverless::Function
+    Description: Generate an API token upon account verification.
+    Properties:
+      Runtime: python3.6
+      Handler: api_contributor_verification.lambda_handler
+      CodeUri: ./src/functions/contributors/api_contributor_verification
+      Environment:
+        Variables:
+          CONTRIBUTORS_TABLE: !Ref ContributorsTable
+          DB_KEY_PARAMETER: !Ref DatabaseKeyParameter
+          EMAIL_SNS_TOPIC: !Ref SendEmailTopic
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action: dynamodb:GetItem
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ContributorsTable}'
+          - Effect: Allow
+            Action: sns:Publish
+            Resource: !Ref SendEmailTopic
+          - Effect: Allow
+            Action: ssm:GetParameter*
+            Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/communitypatch*'
+          - Effect: Allow
+            Action: kms:Decrypt
+            Resource: !Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${EncryptionKeyId}'
+      Events:
+        ApiContributorRegistration:
+          Type: Api
+          Properties:
+            Path: /api/v1/verify
+            Method: get
+            RestApiId:
+                Ref: ApiGateway
+
 # Email Service
 
-  SendEmail:
+  EmailService:
     Type: AWS::Serverless::Function
     Description:
     Properties:
