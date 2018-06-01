@@ -6,8 +6,6 @@ import os
 import time
 from urllib.parse import urlparse
 
-from aws_xray_sdk.core import xray_recorder
-from aws_xray_sdk.core import patch
 import boto3
 from botocore.exceptions import ClientError
 from jsonschema import validate, ValidationError
@@ -16,8 +14,6 @@ import requests
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-xray_recorder.configure(service='CommunityPatch')
-patch(['boto3', 'requests'])
 
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 SNS_TOPIC_ARN_TOKEN = os.getenv('SNS_TOPIC_ARN_TOKEN')

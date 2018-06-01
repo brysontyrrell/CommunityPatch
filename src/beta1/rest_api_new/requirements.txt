@@ -1,3 +1,2 @@
-aws-xray-sdk==0.97
 jsonschema==2.6.0
 requests==2.18.4

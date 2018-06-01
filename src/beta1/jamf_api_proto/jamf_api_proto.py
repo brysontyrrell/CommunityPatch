@@ -5,16 +5,11 @@ import os
 import queue
 import threading
 
-from aws_xray_sdk.core import xray_recorder
-from aws_xray_sdk.core import patch
 import boto3
 from botocore.exceptions import ClientError
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
-xray_recorder.configure(service='CommunityPatch')
-patch(['boto3'])
 
 s3_bucket_name = os.getenv('DEFINITIONS_BUCKET')
 

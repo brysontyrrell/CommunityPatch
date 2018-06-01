@@ -4,16 +4,11 @@ from operator import itemgetter
 import os
 import time
 
-from aws_xray_sdk.core import xray_recorder
-from aws_xray_sdk.core import patch
 import boto3
 import jinja2
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
-xray_recorder.configure(service='CommunityPatch')
-patch(['boto3'])
 
 function_dir = os.path.dirname(os.path.abspath(__file__))
 

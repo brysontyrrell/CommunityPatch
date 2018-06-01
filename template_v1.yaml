@@ -31,7 +31,6 @@ Parameters:
 Globals:
   Function:
     Runtime: python3.6
-    Tracing: Active
     Environment:
       Variables:
         METRICS_QUEUE_URL: !Ref MetricsQueue
