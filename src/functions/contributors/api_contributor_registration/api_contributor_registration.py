@@ -3,11 +3,13 @@ import hashlib
 import json
 import logging
 import os
+import time
 from urllib.parse import urlencode, urlunparse
 import uuid
 
 import boto3
 from botocore.exceptions import ClientError
+from cryptography.fernet import Fernet
 from jsonschema import validate, ValidationError
 
 logger = logging.getLogger()
@@ -17,8 +19,18 @@ CONTRIBUTORS_TABLE = os.getenv('CONTRIBUTORS_TABLE')
 DOMAIN_NAME = os.getenv('DOMAIN_NAME')
 EMAIL_SNS_TOPIC = os.getenv('EMAIL_SNS_TOPIC')
 
-with open('schema_request.json', 'r') as f_obj:
+ssm_client = boto3.client('ssm')
+
+with open('schemas/schema_request.json', 'r') as f_obj:
     schema_request = json.load(f_obj)
+
+
+def get_database_key(name):
+    resp = ssm_client.get_parameter(Name=name, WithDecryption=True)
+    return resp['Parameter']['Value']
+
+
+fernet = Fernet(get_database_key(os.getenv('DB_KEY_PARAMETER')))
 
 
 def response(message, status_code):
@@ -41,7 +53,7 @@ def response(message, status_code):
     }
 
 
-def send_email(name, url):
+def send_email(recipient, name, url):
     sns_client = boto3.client('sns')
 
     try:
@@ -49,7 +61,7 @@ def send_email(name, url):
             TopicArn=EMAIL_SNS_TOPIC,
             Message=json.dumps(
                 {
-                    'recipient': '',
+                    'recipient': recipient,
                     'message_type': 'verification',
                     'message_data': {
                         'display_name': name,
@@ -81,10 +93,11 @@ def write_new_contributor(id_, name, email, verification_code):
             Item={
                 'id': id_,
                 'display_name': name,
-                'email_hash': hash_value(email),
+                'email': fernet.encrypt(email.encode()),
                 'verification_code': verification_code,
                 'token_id': None,
-                'verified_account': False
+                'verified_account': False,
+                'date_registered': int(time.time())
             },
             ConditionExpression='attribute_not_exists(id) AND '
                                 'attribute_not_exists(display_name)'
@@ -100,7 +113,6 @@ def lambda_handler(event, context):
     1) Load request body
     2) Check if 'contributor' exists in database
     3) If not, create, initiate confirmation email
-
     """
     try:
         request_data = json.loads(event['body'])
@@ -148,6 +160,6 @@ def lambda_handler(event, context):
         else:
             raise
 
-    send_email(request_data['name'], verification_url)
+    send_email(request_data['email'], request_data['name'], verification_url)
 
     return response('Success', 201)
