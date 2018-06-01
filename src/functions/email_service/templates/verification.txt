@@ -1,0 +1,9 @@
+Verify Your API Token Request
+
+Before providing your API token for CommunityPatch, please verify your request by clicking the link below.
+
+Display Name:
+{{ message.display_name }}
+
+Verification URL:
+{{ message.url }}

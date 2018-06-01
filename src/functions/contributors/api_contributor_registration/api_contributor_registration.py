@@ -7,6 +7,8 @@ import time
 from urllib.parse import urlencode, urlunparse
 import uuid
 
+# from aws_xray_sdk.core import xray_recorder
+# from aws_xray_sdk.core import patch
 import boto3
 from botocore.exceptions import ClientError
 from cryptography.fernet import Fernet
@@ -14,6 +16,9 @@ from jsonschema import validate, ValidationError
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+# xray_recorder.configure(service='CommunityPatch')
+# patch(['boto3'])
 
 CONTRIBUTORS_TABLE = os.getenv('CONTRIBUTORS_TABLE')
 DOMAIN_NAME = os.getenv('DOMAIN_NAME')
@@ -133,7 +138,7 @@ def lambda_handler(event, context):
     verification_url = urlunparse(
         (
             'https',
-            'beta.communitypatch.com',
+            DOMAIN_NAME,
             'api/v1/verify',
             None,
             urlencode(
