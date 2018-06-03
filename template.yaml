@@ -93,6 +93,31 @@ Resources:
         info:
           title: !Ref AWS::StackName
         paths:
+
+          "/":
+            get:
+              x-amazon-apigateway-integration:
+                contentHandling: "CONVERT_TO_TEXT"
+                type: aws
+                httpMethod: post
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebView.Arn}/invocations"
+                passthroughBehavior: "when_no_match"
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Content-Type: "'text/html'"
+                    responseTemplates:
+                      text/html: "$input.path('$')"
+              produces:
+                - "text/html"
+              responses:
+                "200":
+                  description: "200 response"
+                  headers:
+                    Content-Type:
+                      type: "string"
+
           "/api/v1/register":
             post:
               x-amazon-apigateway-integration:
@@ -100,6 +125,7 @@ Resources:
                 type: aws_proxy
                 uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiContributorRegistration.Arn}/invocations'
               responses: {}
+
           "/api/v1/verify":
             get:
               x-amazon-apigateway-integration:
@@ -175,6 +201,33 @@ Resources:
         DNSName: !GetAtt CloudFrontDistribution.DomainName
         EvaluateTargetHealth: false
         HostedZoneId: Z2FDTNDATAQYW2
+
+# Web View
+
+  WebView:
+    Type: AWS::Serverless::Function
+    Description: Renders the main web page displaying all available titles.
+    Properties:
+      Runtime: python3.6
+      Handler: web_view.lambda_handler
+      CodeUri: ./src/functions/web_view
+      Environment:
+        Variables:
+          CONTRIBUTORS_TABLE: !Ref ContributorsTable
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action: dynamodb:Query
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ContributorsTable}'
+      Events:
+        get:
+          Type: Api
+          Properties:
+            Path: /
+            Method: get
+            RestApiId:
+                Ref: ApiGateway
+
 
 # Contributor Management
 

@@ -39,7 +39,7 @@ def redirect_url(status):
         (
             'https',
             DOMAIN_NAME,
-            'verify.html',
+            '',
             None,
             urlencode({'status': status}),
             None
