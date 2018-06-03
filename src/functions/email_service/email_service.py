@@ -31,6 +31,11 @@ def send_email(data):
     html_template = jinja2_env.get_template(f'{message_type}.html')
     text_template = jinja2_env.get_template(f'{message_type}.txt')
 
+    if data['message_data'].get('display_name'):
+        subject = f"Community Patch ({data['message_data']['display_name']})"
+    else:
+        subject = 'Community Patch'
+
     return ses_client.send_email(
         Destination={
             'ToAddresses': [data['recipient']],
@@ -48,7 +53,7 @@ def send_email(data):
             },
             'Subject': {
                 'Charset': 'UTF-8',
-                'Data': 'Community Patch',
+                'Data': subject,
             },
         },
         Source=f'Commuinity Patch <{SENDER_ADDRESS}>'

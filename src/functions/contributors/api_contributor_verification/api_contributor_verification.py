@@ -102,7 +102,16 @@ def get_contributor(contributor_id):
                          f'{error.response}')
         raise
 
-    return resp.get('Item')
+    contributor = resp.get('Item')
+
+    try:
+        contributor['email'] = fernet.decrypt(
+            contributor['email'].value).decode()
+    except (TypeError, InvalidToken):
+        logger.exception('Unable to decrypt the contributor email address!')
+        raise
+
+    return contributor
 
 
 def update_contributor(contributor_id, token_id):
@@ -153,7 +162,7 @@ def lambda_handler(event, context):
 
     try:
         contributor = get_contributor(contributor_id)
-    except ClientError:
+    except:
         return response('error')
 
     if not contributor:
@@ -168,12 +177,6 @@ def lambda_handler(event, context):
         logger.error('The verification codes do not match!')
         return response('invalid-code')
 
-    try:
-        contributor_email = fernet.decrypt(contributor['email'])
-    except (TypeError, InvalidToken):
-        logger.exception('Unable to decrypt the contributor email address!')
-        return response('error')
-
     api_token, token_id = create_token(contributor_id)
 
     try:
@@ -181,7 +184,5 @@ def lambda_handler(event, context):
     except ClientError:
         return response('error')
 
-    send_email(contributor_email, contributor['display_name'], api_token)
-
-    send_email(contributor_email, contributor['display_name'], api_token)
+    send_email(contributor['email'], contributor['display_name'], api_token)
     return response('success')

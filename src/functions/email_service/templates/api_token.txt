@@ -1,0 +1,14 @@
+Your CommunityPatch API Token
+
+Thank you for registering with CommunityPatch. This is your API access token for
+the service. You may now use the API to create and manage patch definitions under
+your given name.
+
+Display Name:
+{{ message.display_name }}
+
+Token:
+{{ message.api_token }}
+
+To learn more about using the API, visit the docs:
+http://communitypatch.readthedocs.io
