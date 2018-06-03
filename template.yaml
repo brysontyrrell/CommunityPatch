@@ -225,7 +225,9 @@ Resources:
         Variables:
           CONTRIBUTORS_TABLE: !Ref ContributorsTable
           DB_KEY_PARAMETER: !Ref DatabaseKeyParameter
+          DOMAIN_NAME: !Ref DomainName
           EMAIL_SNS_TOPIC: !Ref SendEmailTopic
+          SECRET_KEY: !Ref ApiTokenSecretKey
       Policies:
         Statement:
           - Effect: Allow

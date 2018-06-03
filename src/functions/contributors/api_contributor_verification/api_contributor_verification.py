@@ -1,12 +1,15 @@
 import json
 import logging
 import os
+from urllib.parse import urlencode, urlunparse
+import uuid
 
 # from aws_xray_sdk.core import xray_recorder
 # from aws_xray_sdk.core import patch
 import boto3
 from botocore.exceptions import ClientError
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
+import jwt
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -15,7 +18,11 @@ logger.setLevel(logging.INFO)
 # patch(['boto3'])
 
 CONTRIBUTORS_TABLE = os.getenv('CONTRIBUTORS_TABLE')
+DOMAIN_NAME = os.getenv('DOMAIN_NAME')
 EMAIL_SNS_TOPIC = os.getenv('EMAIL_SNS_TOPIC')
+SECRET_KEY = os.getenv('SECRET_KEY')
+
+dynamodb = boto3.resource('dynamodb')
 
 
 def get_database_key(name):
@@ -27,27 +34,40 @@ def get_database_key(name):
 fernet = Fernet(get_database_key(os.getenv('DB_KEY_PARAMETER')))
 
 
-def response(message, status_code):
+def redirect_url(status):
+    return urlunparse(
+        (
+            'https',
+            DOMAIN_NAME,
+            'verify.html',
+            None,
+            urlencode({'status': status}),
+            None
+        )
+    )
+
+
+def response(status):
     """Returns a dictionary object for an API Gateway Lambda integration
     response.
 
-    :param str message: Message for JSON body of response
-    :param int status_code: HTTP status code of response
+    :param str status: The status for the redirect query string
 
     :rtype: dict
     """
-    if isinstance(message, str):
-        message = {'message': message}
 
     return {
         'isBase64Encoded': False,
-        'statusCode': status_code,
-        'body': json.dumps(message),
-        'headers': {'Content-Type': 'application/json'}
+        'statusCode': 302,
+        'body': json.dumps(''),
+        'headers': {
+            'Content-Type': 'application/json',
+            'Location': redirect_url(status)
+        }
     }
 
 
-def send_email(recipient, name, url):
+def send_email(recipient, name, token):
     sns_client = boto3.client('sns')
 
     try:
@@ -59,7 +79,7 @@ def send_email(recipient, name, url):
                     'message_type': 'api_token',
                     'message_data': {
                         'display_name': name,
-                        'api_token': url
+                        'api_token': token
                     }
                 }
             ),
@@ -71,8 +91,55 @@ def send_email(recipient, name, url):
 
 
 def get_contributor(contributor_id):
-    contributors_table = boto3.resource('dynamodb').Table(CONTRIBUTORS_TABLE)
-    return ''
+    contributors_table = dynamodb.Table(CONTRIBUTORS_TABLE)
+
+    try:
+        resp = contributors_table.get_item(
+            Key={'id': contributor_id}
+        )
+    except ClientError as error:
+        logger.exception(f'Error retrieving the contributor {contributor_id}: '
+                         f'{error.response}')
+        raise
+
+    return resp.get('Item')
+
+
+def update_contributor(contributor_id, token_id):
+    contributors_table = dynamodb.Table(CONTRIBUTORS_TABLE)
+
+    try:
+        resp = contributors_table.update_item(
+            Key={
+                'id': contributor_id
+            },
+            UpdateExpression="set token_id = :ti, verified_account = :v",
+            ExpressionAttributeValues={
+                ':ti': token_id,
+                ':v': True
+            },
+            ReturnValues="UPDATED_NEW"
+        )
+        logger.info(f"Contributor updated: {resp['Attributes']}")
+
+    except ClientError as error:
+        logger.exception(f'DynamoDB: {error.response}')
+        raise
+
+
+def create_token(contributor_id):
+    token_id = str(uuid.uuid4())
+
+    api_token = jwt.encode(
+        {
+            'jti': token_id,
+            'sub': contributor_id
+        },
+        SECRET_KEY,
+        algorithm='HS256'
+    ).decode()
+
+    return api_token, token_id
 
 
 def lambda_handler(event, context):
@@ -82,12 +149,39 @@ def lambda_handler(event, context):
         verification_code = event['queryStringParameters']['code']
     except (KeyError, TypeError):
         logger.error("Bad Request: Required values are missing")
-        return response("Bad Request: Required values are missing", 400)
+        return response('missing-values')
 
     try:
         contributor = get_contributor(contributor_id)
     except ClientError:
-        logger.exception(f'Error retrieving the contributor {contributor_id}')
-        raise
+        return response('error')
 
-    return response('OK', 200)
+    if not contributor:
+        logger.error(f"The ID '{contributor_id}' was not found on lookup")
+        return response('not-found')
+
+    if contributor['verified_account']:
+        logger.error('This contributor has already been verified')
+        return response('already-verified')
+
+    if verification_code != contributor['verification_code']:
+        logger.error('The verification codes do not match!')
+        return response('invalid-code')
+
+    try:
+        contributor_email = fernet.decrypt(contributor['email'])
+    except (TypeError, InvalidToken):
+        logger.exception('Unable to decrypt the contributor email address!')
+        return response('error')
+
+    api_token, token_id = create_token(contributor_id)
+
+    try:
+        update_contributor(contributor_id, token_id)
+    except ClientError:
+        return response('error')
+
+    send_email(contributor_email, contributor['display_name'], api_token)
+
+    send_email(contributor_email, contributor['display_name'], api_token)
+    return response('success')
