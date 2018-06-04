@@ -51,6 +51,21 @@ Resources:
             Principal:
               AWS: !Sub 'arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}'
 
+  WebContentBucket:
+    Type: AWS::S3::Bucket
+
+  WebContentBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebContentBucket
+      PolicyDocument:
+        Statement:
+          - Action: s3:GetObject
+            Effect: Allow
+            Resource: !Sub '${WebContentBucket.Arn}/*'
+            Principal:
+              AWS: !Sub 'arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}'
+
 # DynamoDB Tables
 
   ContributorsTable:
@@ -266,6 +281,15 @@ Resources:
             TargetOriginId: TitlesBucketOrigin
             ViewerProtocolPolicy: allow-all
 
+          - Compress: true
+            DefaultTTL: 3600
+            ForwardedValues:
+              QueryString: true
+            PathPattern: '/images/*'
+            MaxTTL: 3600
+            TargetOriginId: WebContentBucketOrigin
+            ViewerProtocolPolicy: allow-all
+
         Origins:
           - DomainName: !Sub '${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com'
             Id: ApiGatewayOrigin
@@ -275,6 +299,11 @@ Resources:
 
           - DomainName: !GetAtt TitlesBucket.DomainName
             Id: TitlesBucketOrigin
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
+
+          - DomainName: !GetAtt WebContentBucket.DomainName
+            Id: WebContentBucketOrigin
             S3OriginConfig:
               OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
 
