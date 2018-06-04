@@ -65,7 +65,7 @@ def read_table_entry(title_id, contributor_id):
     return resp.get('Item')
 
 
-def read_definition_from_s3(title_id, contributor_id):
+def read_definition_from_s3(contributor_id, title_id):
     f_obj = io.BytesIO()
     try:
         s3_bucket.download_fileobj(
@@ -73,7 +73,7 @@ def read_definition_from_s3(title_id, contributor_id):
             Fileobj=f_obj
         )
     except ClientError:
-        logger.exception('Unable to read title JSON to S3')
+        logger.exception('Unable to read title JSON from S3')
         raise
 
     return json.loads(f_obj.getvalue())
@@ -195,7 +195,7 @@ def lambda_handler(event, context):
         )
 
     try:
-        definition = read_definition_from_s3(title_id, contributor_id)
+        definition = read_definition_from_s3(contributor_id, title_id)
     except ClientError:
         return response('Internal Server Error', 500)
 

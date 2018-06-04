@@ -532,6 +532,12 @@ Resources:
       Environment:
         Variables:
           DOMAIN_NAME: !Ref DomainName
+          TITLES_BUCKET: !Ref TitlesBucket
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub 'arn:aws:s3:::${TitlesBucket}/*'
       Events:
         GetPatch:
           Type: Api
