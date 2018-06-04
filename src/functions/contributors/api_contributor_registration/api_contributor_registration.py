@@ -128,7 +128,7 @@ def lambda_handler(event, context):
         (
             'https',
             DOMAIN_NAME,
-            'api/v1/verify',
+            'api/v1/contributors/verify',
             None,
             urlencode(
                 {

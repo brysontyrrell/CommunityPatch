@@ -34,6 +34,11 @@ Parameters:
 
 Resources:
 
+# S3 Buckets
+
+  TitlesBucket:
+    Type: AWS::S3::Bucket
+
 # DynamoDB Tables
 
   ContributorsTable:
@@ -118,7 +123,7 @@ Resources:
                     Content-Type:
                       type: "string"
 
-          "/api/v1/register":
+          "/api/v1/contributors/register":
             post:
               x-amazon-apigateway-integration:
                 httpMethod: post
@@ -126,12 +131,20 @@ Resources:
                 uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiContributorRegistration.Arn}/invocations'
               responses: {}
 
-          "/api/v1/verify":
+          "/api/v1/contributors/verify":
             get:
               x-amazon-apigateway-integration:
                 httpMethod: post
                 type: aws_proxy
                 uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiContributorVerification.Arn}/invocations'
+              responses: {}
+
+          "/api/v1/title":
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiTitlesCreate.Arn}/invocations'
               responses: {}
 
 # CloudFront Distribution
@@ -262,7 +275,7 @@ Resources:
         ApiContributorRegistration:
           Type: Api
           Properties:
-            Path: /api/v1/register
+            Path: /api/v1/contributors/register
             Method: post
             RestApiId:
                 Ref: ApiGateway
@@ -301,8 +314,40 @@ Resources:
         ApiContributorRegistration:
           Type: Api
           Properties:
-            Path: /api/v1/verify
+            Path: /api/v1/contributors/verify
             Method: get
+            RestApiId:
+                Ref: ApiGateway
+
+# Titles API
+
+  ApiTitlesCreate:
+    Type: AWS::Serverless::Function
+    Description: Handles API requests for creating software title definitions.
+    Properties:
+      Runtime: python3.6
+      Handler: rest_api_new.lambda_handler
+      CodeUri: ./src/beta1/rest_api_new
+      MemorySize: 512
+      Timeout: 15
+      Environment:
+        Variables:
+          TITLES_BUCKET: !Ref TitlesBucket
+          TITLES_TABLE: !Ref TitlesTable
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action: s3:PutObject
+            Resource: !Sub 'arn:aws:s3:::${TitlesBucket}/*'
+          - Effect: Allow
+            Action: dynamodb:PutItem
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TitlesTable}'
+      Events:
+        PostDefinition:
+          Type: Api
+          Properties:
+            Path: /api/v1/title
+            Method: post
             RestApiId:
                 Ref: ApiGateway
 
