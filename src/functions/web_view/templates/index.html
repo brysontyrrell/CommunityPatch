@@ -30,6 +30,16 @@
     <meta name="theme-color" content="#ffffff">
 
     <title>CommunityPatch.com</title>
+
+    <style type="text/css">
+        .table {
+            width: 100% !important;
+        }
+
+        .table-responsive {
+            display: table;
+        }
+    </style>
   </head>
   <body>
 
@@ -53,33 +63,29 @@
 
         {% for contributor in contributors %}
 
-        <div class="row">
+        <!--<div class="row">-->
             <div>
                 <h3 style="display: inline;">{{ contributor.name }}</h3>
                 <p style="display: inline;"><i>({{ contributor.id }})</i></p>
             </div>
-        </div>
+        <!--</div>-->
 
-        <div class="row">
-            <div style="overflow-x:auto;">
-                <table class="table table-striped" style="width: 100%; border-collapse: collapse !important;" id="table-{{ contributor.id }}">
-                    <thead>
-                        <tr>
-                            <th>Patch ID</th>
-                            <th></th>
-                            <th>Name</th>
-                            <th>Publisher</th>
-                            <th>Current Version</th>
-                            <!--<th></th>-->
-                            <th>Last Modified</th>
-                            <!--<th></th>-->
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-
-                <p>Datatable URL: {{ contributor.url }}</p>
-            </div>
+        <div class="table-responsive">
+            <table class="table table-striped" style="width: 100%; border-collapse: collapse !important;" id="table-{{ contributor.id }}">
+                <thead>
+                    <tr>
+                        <th>Patch ID</th>
+                        <th></th>
+                        <th>Name</th>
+                        <th>Publisher</th>
+                        <th>Current Version</th>
+                        <!--<th></th>-->
+                        <th>Last Modified</th>
+                        <!--<th></th>-->
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
 
         {% endfor %}
@@ -88,13 +94,74 @@
 
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
 
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs4/dt-1.10.16/fc-3.2.4/fh-3.1.3/r-2.2.1/datatables.min.css"/>
-    <script type="text/javascript" src="https://cdn.datatables.net/v/bs4/dt-1.10.16/fc-3.2.4/fh-3.1.3/r-2.2.1/datatables.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs4-4.0.0/jq-3.2.1/dt-1.10.16/r-2.2.1/datatables.min.css"/>
+    <script type="text/javascript" src="https://cdn.datatables.net/v/bs4-4.0.0/jq-3.2.1/dt-1.10.16/r-2.2.1/datatables.min.js"></script>
+
     <script type="text/javascript">
+        // https://gist.github.com/kmaida/6045266
+        function convertTimestamp(timestamp) {
+            var d = new Date(timestamp * 1000),	// Convert the passed timestamp to milliseconds
+                yyyy = d.getFullYear(),
+                mm = ('0' + (d.getMonth() + 1)).slice(-2),	// Months are zero based. Add leading 0.
+                dd = ('0' + d.getDate()).slice(-2),			// Add leading 0.
+                hh = d.getHours(),
+                h = hh,
+                min = ('0' + d.getMinutes()).slice(-2),		// Add leading 0.
+                ampm = 'AM',
+                time;
+
+            if (hh > 12) {
+                h = hh - 12;
+                ampm = 'PM';
+            } else if (hh === 12) {
+                h = 12;
+                ampm = 'PM';
+            } else if (hh === 0) {
+                h = 12;
+            }
+
+            // ie: 2013-02-18, 8:35 AM
+            time = yyyy + '-' + mm + '-' + dd + ' ' + h + ':' + min + ' ' + ampm;
+
+            return time;
+        }
+
+        function listSoftwareTitles(contributor_id, source_url) {
+            $('#table-' + contributor_id).DataTable({
+                "paging": false,
+                "searching": false,
+                "bInfo": false,
+                "language": {
+                    "zeroRecords": "No Patch Definitions For This Contributor"
+                },
+                "ajax": {
+                    "url": source_url,
+                    "dataSrc": ""
+                },
+                "columnDefs": [
+                    { "targets": 0, "data": "id" },
+                    {
+                        "targets": 1,
+                        "orderable": false,
+                        "data": "id",
+                        "render": function ( data, type, row, meta ) {
+                            return '<button class="btn btn-light btn-sm" onclick="window.location.href=\'../jamf/v1/' + contributor_id + '/patch/' + data + '\'">' +
+                                   '<span class="fas fa-eye fa-sm"></span></button>';
+                        }
+                    },
+                    { "targets": 2, "orderable": false, "data": "name" },
+                    { "targets": 3, "data": "publisher" },
+                    { "targets": 4, "data": "currentVersion" },
+                    { "targets": 5, "data": "lastModified" }
+                ]
+            });
+
+        }
+
         function getParameterByName(name, url) {
             if (!url) url = window.location.href;
             name = name.replace(/[\[\]]/g, "\\$&");
@@ -149,6 +216,10 @@
                 $('#verify-alert-body').html(alert_body);
                 $('#verify-alert').show();
             }
+
+            {% for contributor in contributors %}
+                listSoftwareTitles('{{ contributor.id }}', '{{ contributor.url }}');
+            {% endfor %}
 
         });
     </script>
