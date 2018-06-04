@@ -51,10 +51,18 @@
             <a class="btn btn-success" href="http://communitypatch.readthedocs.io" target="_blank" role="button">Read the docs</a>
         </div>
 
-        <div class="row">
+        {% for contributor in contributors %}
 
+        <div class="row">
+            <div>
+                <h3 style="display: inline;">{{ contributor.name }}</h3>
+                <p style="display: inline;"><i>({{ contributor.id }})</i></p>
+            </div>
+        </div>
+
+        <div class="row">
             <div style="overflow-x:auto;">
-                <table class="table table-striped" style="width: 100%; border-collapse: collapse !important;" id="patch-list">
+                <table class="table table-striped" style="width: 100%; border-collapse: collapse !important;" id="table-{{ contributor.id }}">
                     <thead>
                         <tr>
                             <th>Patch ID</th>
@@ -62,32 +70,19 @@
                             <th>Name</th>
                             <th>Publisher</th>
                             <th>Current Version</th>
-                            <th></th>
+                            <!--<th></th>-->
                             <th>Last Modified</th>
-                            <th></th>
+                            <!--<th></th>-->
                         </tr>
                     </thead>
-                    <tbody>
-                        {% for title in titles %}
-                            <tr>
-                                <td>
-                                    <button class="btn-info btn-xs" onclick="window.location.href='../jamf/v1/patch/{{ title.id }}'">
-                                        <span class="fas fa-eye"></span>
-                                    </button>
-                                </td>
-                                <td class="text-nowrap">{{ title.name }}</td>
-                                <td>{{ title.currentVersion }}</td>
-                                <td class="text-nowrap">{{ title.lastModified|safe }}</td>
-                                <!--<td class="text-nowrap">{{ title.id }}</td>-->
-                                <td>{{ title.publisher }}</td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
+                    <tbody></tbody>
                 </table>
+
+                <p>Datatable URL: {{ contributor.url }}</p>
             </div>
         </div>
+
+        {% endfor %}
     </div>
 
 

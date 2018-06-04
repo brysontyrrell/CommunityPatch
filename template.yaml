@@ -303,10 +303,11 @@ Resources:
       Environment:
         Variables:
           CONTRIBUTORS_TABLE: !Ref ContributorsTable
+          TITLES_TABLE: !Ref TitlesTable
       Policies:
         Statement:
           - Effect: Allow
-            Action: dynamodb:Query
+            Action: dynamodb:Scan
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ContributorsTable}'
       Events:
         Index:
