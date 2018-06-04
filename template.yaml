@@ -257,7 +257,7 @@ Resources:
             Action: dynamodb:Query
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ContributorsTable}'
       Events:
-        get:
+        Index:
           Type: Api
           Properties:
             Path: /
@@ -382,8 +382,6 @@ Resources:
       Runtime: python3.6
       Handler: api_titles_create.lambda_handler
       CodeUri: ./src/functions/titles/api_titles_create
-      MemorySize: 512
-      Timeout: 15
       Environment:
         Variables:
           TITLES_BUCKET: !Ref TitlesBucket
@@ -397,7 +395,7 @@ Resources:
             Action: dynamodb:PutItem
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TitlesTable}'
       Events:
-        PostDefinition:
+        CreateTitle:
           Type: Api
           Properties:
             Path: /api/v1/titles
@@ -412,7 +410,6 @@ Resources:
       Runtime: python3.6
       Handler: api_titles_update.lambda_handler
       CodeUri: ./src/functions/titles/api_titles_update
-      MemorySize: 512
       Environment:
         Variables:
           TITLES_BUCKET: !Ref TitlesBucket
@@ -430,7 +427,7 @@ Resources:
               - dynamodb:UpdateItem
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TitlesTable}'
       Events:
-        PostVersion:
+        UpdateTitle:
           Type: Api
           Properties:
             Path: /api/v1/titles/{title}/version
