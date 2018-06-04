@@ -22,6 +22,9 @@ DOMAIN_NAME = os.getenv('DOMAIN_NAME')
 EMAIL_SNS_TOPIC = os.getenv('EMAIL_SNS_TOPIC')
 SECRET_KEY = os.getenv('SECRET_KEY')
 
+if not SECRET_KEY:
+    raise Exception('Internal Server Error')
+
 dynamodb = boto3.resource('dynamodb')
 
 

@@ -3,6 +3,8 @@ import logging
 import os
 import time
 
+# from aws_xray_sdk.core import xray_recorder
+# from aws_xray_sdk.core import patch
 import boto3
 from botocore.exceptions import ClientError
 from jsonschema import validate, ValidationError
@@ -10,12 +12,15 @@ from jsonschema import validate, ValidationError
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+# xray_recorder.configure(service='CommunityPatch')
+# patch(['boto3'])
+
 TITLES_TABLE = os.getenv('TITLES_TABLE')
 
 dynamodb = boto3.resource('dynamodb')
 s3_bucket = boto3.resource('s3').Bucket(os.getenv('TITLES_BUCKET'))
 
-with open('schema_full_definition.json', 'r') as f_obj:
+with open('schemas/schema_full_definition.json', 'r') as f_obj:
     schema_definition = json.load(f_obj)
 
 
@@ -42,6 +47,7 @@ def response(message, status_code):
 
 
 def create_table_entry(patch_definition, contributor_id):
+    """Write the definition to DynamoDB table"""
     titles_table = dynamodb.Table(TITLES_TABLE)
 
     try:
@@ -49,56 +55,47 @@ def create_table_entry(patch_definition, contributor_id):
             Item={
                 "contributor_id": contributor_id,
                 "title_id": patch_definition['id'],
-                "last_sync_result": None,
-                "last_sync_time": int(time.time()),
-                "title_summary": {
+                "api_allowed": True,
+                "summary": {
                     "id": patch_definition['id'],
                     "name": patch_definition['name'],
                     "publisher": patch_definition['publisher'],
                     "currentVersion": patch_definition['currentVersion'],
                     "lastModified": patch_definition['lastModified']
-                }
+                },
+                "last_sync_result": None,
+                "last_sync_time": None
             },
             ConditionExpression='attribute_not_exists(title_id)'
         )
     except ClientError:
         logger.exception('Unable to write title entry to DynamoDB!')
         raise
-    else:
-        logger.info(f'Wrote title entry to DynamoDB')
 
 
-def definition_from_json(data):
-    logger.info('Loading definition from request body')
-    patch_definition = data.get('definition')
-    return create_definition(patch_definition, data)
+def delete_table_entry(patch_id, contributor_id):
+    pass
 
 
-def create_definition(patch_definition, contributor):
-    """Create the definition in DynamoDB and S3"""
-
-
+def write_definition_to_s3(patch_definition, contributor_id):
+    """Save the definition to S3 bucket"""
     try:
-        resp = s3_bucket.put_object(
+        s3_bucket.put_object(
             Body=json.dumps(patch_definition),
-            Key=patch_definition['id']
+            Key=os.path.join(contributor_id, patch_definition['id']),
+            ContentType='application/json'
         )
-    except ClientError as error:
-        logger.exception(f'S3: {error}')
-        return response(f'Internal Server Error: {error}', 500)
-    else:
-        logger.info(f'Wrote file to S3: {resp}')
-
-    return response(
-        'Software title created - check your email for your API token!', 201)
+    except ClientError:
+        logger.exception('Unable to write title JSON to S3')
+        raise
 
 
 def lambda_handler(event, context):
     try:
-        token = event['requestContext']['authorizer']['jti']
+        contributor_id = event['requestContext']['authorizer']['sub']
     except KeyError:
         logger.error('Token data not found!')
-        return response('Bad Request', 400)
+        return response('Forbidden', 403)
 
     try:
         data = json.loads(event['body'])
@@ -120,7 +117,7 @@ def lambda_handler(event, context):
         )
 
     try:
-        create_table_entry('', data)
+        create_table_entry(data, contributor_id)
     except ClientError as error:
         if error.response['Error']['Code'] == 'ConditionalCheckFailedException':
             return response("Conflict: You have already created a title with "
@@ -128,4 +125,10 @@ def lambda_handler(event, context):
         else:
             return response(f'Internal Server Error', 500)
 
-    return response('', 201)
+    try:
+        write_definition_to_s3(data, contributor_id)
+    except ClientError:
+        # Delete the DynamoDB entry for cleanup
+        return response('Internal Server Error', 500)
+
+    return response(f"Title '{data['id']}' created", 201)

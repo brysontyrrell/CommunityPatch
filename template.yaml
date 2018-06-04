@@ -151,13 +151,15 @@ Resources:
                 uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiContributorVerification.Arn}/invocations'
               responses: {}
 
-          "/api/v1/title":
+          "/api/v1/titles":
             post:
               x-amazon-apigateway-integration:
                 httpMethod: post
                 type: aws_proxy
                 uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiTitlesCreate.Arn}/invocations'
               responses: {}
+              security:
+                - authorizer: []
 
 # CloudFront Distribution
 
@@ -368,8 +370,8 @@ Resources:
     Description: Handles API requests for creating software title definitions.
     Properties:
       Runtime: python3.6
-      Handler: rest_api_new.lambda_handler
-      CodeUri: ./src/beta1/rest_api_new
+      Handler: api_titles_create.lambda_handler
+      CodeUri: ./src/functions/titles/api_titles_create
       MemorySize: 512
       Timeout: 15
       Environment:
@@ -388,7 +390,7 @@ Resources:
         PostDefinition:
           Type: Api
           Properties:
-            Path: /api/v1/title
+            Path: /api/v1/titles
             Method: post
             RestApiId:
                 Ref: ApiGateway
