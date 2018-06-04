@@ -90,7 +90,6 @@ def list_select_software_titles(contributor_id, path_parameter):
 
 
 def lambda_handler(event, context):
-    logger.info(event)
     resource = event['resource']
     parameters = event['pathParameters']
 

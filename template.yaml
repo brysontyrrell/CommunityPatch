@@ -187,6 +187,14 @@ Resources:
                 uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiJamfSoftware.Arn}/invocations'
               responses: {}
 
+          "/jamf/v1/{contributor}/patch/{title}":
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiJamfPatch.Arn}/invocations'
+              responses: {}
+
 # CloudFront Distribution
 
 #  CloudFrontOriginAccessIdentity:
@@ -482,6 +490,25 @@ Resources:
           Type: Api
           Properties:
             Path: /jamf/v1/{contributor}/software/{titles}
+            Method: get
+            RestApiId:
+                Ref: ApiGateway
+
+  ApiJamfPatch:
+    Type: AWS::Serverless::Function
+    Description: Handles Jamf Pro requests for patch definitions.
+    Properties:
+      Runtime: python3.6
+      Handler: api_jamf_patch.lambda_handler
+      CodeUri: ./src/functions/jamf/api_jamf_patch
+      Environment:
+        Variables:
+          DOMAIN_NAME: !Ref DomainName
+      Events:
+        GetPatch:
+          Type: Api
+          Properties:
+            Path: /jamf/v1/{contributor}/patch/{title}
             Method: get
             RestApiId:
                 Ref: ApiGateway

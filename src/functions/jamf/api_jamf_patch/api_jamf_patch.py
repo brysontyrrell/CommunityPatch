@@ -1,17 +1,18 @@
 import json
 import logging
 import os
+from urllib.parse import urlunparse
 
 # from aws_xray_sdk.core import xray_recorder
 # from aws_xray_sdk.core import patch
-import boto3
-from botocore.exceptions import ClientError
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # xray_recorder.configure(service='CommunityPatch')
 # patch(['boto3'])
+
+DOMAIN_NAME = os.getenv('DOMAIN_NAME')
 
 
 def response(message, status_code):
@@ -36,5 +37,42 @@ def response(message, status_code):
     }
 
 
+def redirect(contributor_id, title_id):
+    """Returns a dictionary object for an API Gateway Lambda integration
+    response.
+
+    :param str contributor_id: The contributor ID
+    :param str title_id: The title ID
+
+    :rtype: dict
+    """
+    def redirect_url():
+        return urlunparse(
+            (
+                'https',
+                DOMAIN_NAME,
+                os.path.join('titles', contributor_id, title_id),
+                None,
+                None,
+                None
+            )
+        )
+
+    return {
+        'isBase64Encoded': False,
+        'statusCode': 302,
+        'body': json.dumps(''),
+        'headers': {
+            'Content-Type': 'application/json',
+            'Location': redirect_url()
+        }
+    }
+
+
 def lambda_handler(event, context):
-    return response('', 200)
+    parameters = event['pathParameters']
+
+    contributor_id = parameters['contributor']
+    title_id = parameters['title']
+
+    return redirect(contributor_id, title_id)
