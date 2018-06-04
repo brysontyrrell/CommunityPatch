@@ -137,7 +137,7 @@ def update_contributor(contributor_id, token_id):
 
 
 def create_token(contributor_id):
-    token_id = str(uuid.uuid4())
+    token_id = uuid.uuid4().hex
 
     api_token = jwt.encode(
         {
