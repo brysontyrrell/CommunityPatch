@@ -81,7 +81,7 @@ def write_definition_to_s3(patch_definition, contributor_id):
     try:
         s3_bucket.put_object(
             Body=json.dumps(patch_definition),
-            Key=os.path.join(contributor_id, patch_definition['id']),
+            Key=os.path.join('titles', contributor_id, patch_definition['id']),
             ContentType='application/json'
         )
     except ClientError:

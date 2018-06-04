@@ -69,7 +69,7 @@ def read_definition_from_s3(title_id, contributor_id):
     f_obj = io.BytesIO()
     try:
         s3_bucket.download_fileobj(
-            Key=os.path.join(contributor_id, title_id),
+            Key=os.path.join('titles', contributor_id, title_id),
             Fileobj=f_obj
         )
     except ClientError:
@@ -107,7 +107,7 @@ def write_definition_to_s3(patch_definition, contributor_id):
     try:
         s3_bucket.put_object(
             Body=json.dumps(patch_definition),
-            Key=os.path.join(contributor_id, patch_definition['id']),
+            Key=os.path.join('titles', contributor_id, patch_definition['id']),
             ContentType='application/json'
         )
     except ClientError:
