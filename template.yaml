@@ -161,6 +161,16 @@ Resources:
               security:
                 - authorizer: []
 
+          "/api/v1/titles/{title}/version":
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiTitlesUpdate.Arn}/invocations'
+              responses: {}
+              security:
+                - authorizer: []
+
 # CloudFront Distribution
 
 #  CloudFrontOriginAccessIdentity:
@@ -391,6 +401,39 @@ Resources:
           Type: Api
           Properties:
             Path: /api/v1/titles
+            Method: post
+            RestApiId:
+                Ref: ApiGateway
+
+  ApiTitlesUpdate:
+    Type: AWS::Serverless::Function
+    Description: Handles API requests for updating patch definitions.
+    Properties:
+      Runtime: python3.6
+      Handler: api_titles_update.lambda_handler
+      CodeUri: ./src/functions/titles/api_titles_update
+      MemorySize: 512
+      Environment:
+        Variables:
+          TITLES_BUCKET: !Ref TitlesBucket
+          TITLES_TABLE: !Ref TitlesTable
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action:
+             - s3:GetObject
+             - s3:PutObject
+            Resource: !Sub 'arn:aws:s3:::${TitlesBucket}/*'
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:UpdateItem
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TitlesTable}'
+      Events:
+        PostVersion:
+          Type: Api
+          Properties:
+            Path: /api/v1/titles/{title}/version
             Method: post
             RestApiId:
                 Ref: ApiGateway

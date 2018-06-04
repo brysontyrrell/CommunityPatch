@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import time
 
 # from aws_xray_sdk.core import xray_recorder
 # from aws_xray_sdk.core import patch
