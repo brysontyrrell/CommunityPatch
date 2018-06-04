@@ -5,6 +5,10 @@ CommunityPatch.com is a free, open-source patch server for Jamf Pro
 administrators to post patch definitions they maintain for the broader Jamf
 community to subscribe to.
 
+.. note::
+
+    This documentation covers CommunityPatch ``Beta2``.
+
 .. warning::
 
    Looking for ``Beta1`` documentation? Click :doc:`here <../beta1/beta1>`.

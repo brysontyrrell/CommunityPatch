@@ -63,12 +63,41 @@
         </div>
     </div>
 
+    <div class="modal fade" id="registerModal" tabindex="-1" role="dialog">
+        <div class="modal-md modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4>Register for a CommunityPatch API Token</h4>
+                </div>
+                <form id="registerModalForm">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="name">Display name</label>
+                            <input type="text" class="form-control" id="name" name="name">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="text" class="form-control" id="email" name="email">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                        <button class="btn btn-primary" id="registerModalSubmit" type="submit">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
 
         <div class="jumbotron" style="padding: 2rem; margin-bottom: 1.5rem; margin-top: 1rem;">
             <h1>Community Patch</h1>
             <p class="lead">This is a community managed patch source for Jamf Pro administrators. Read more about using this service and managing definitions at the official docs:</p>
-            <a class="btn btn-success" href="http://communitypatch.readthedocs.io" target="_blank" role="button">Read the docs</a>
+            <div>
+                <button class="btn-sm btn-dark" style="display:inline;" onclick="window.open('http://communitypatch.readthedocs.io', '_blank')">Read the docs <span class="fas fa-arrow-circle-right fa-sm"></span></button>
+                <button class="btn-sm btn-dark" style="display:inline;" data-toggle="modal" data-target="#registerModal" title="Register">Register <span class="fas fa-user-plus fa-sm"></span></button>
+            </div>
         </div>
 
         {% for contributor in contributors %}
@@ -89,9 +118,8 @@
                         <th>Name</th>
                         <th>Publisher</th>
                         <th>Current Version</th>
-                        <!--<th></th>-->
                         <th>Last Modified</th>
-                        <!--<th></th>-->
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -102,34 +130,6 @@
     </div>
 
     <script type="text/javascript">
-        // https://gist.github.com/kmaida/6045266
-        function convertTimestamp(timestamp) {
-            var d = new Date(timestamp * 1000),	// Convert the passed timestamp to milliseconds
-                yyyy = d.getFullYear(),
-                mm = ('0' + (d.getMonth() + 1)).slice(-2),	// Months are zero based. Add leading 0.
-                dd = ('0' + d.getDate()).slice(-2),			// Add leading 0.
-                hh = d.getHours(),
-                h = hh,
-                min = ('0' + d.getMinutes()).slice(-2),		// Add leading 0.
-                ampm = 'AM',
-                time;
-
-            if (hh > 12) {
-                h = hh - 12;
-                ampm = 'PM';
-            } else if (hh === 12) {
-                h = 12;
-                ampm = 'PM';
-            } else if (hh === 0) {
-                h = 12;
-            }
-
-            // ie: 2013-02-18, 8:35 AM
-            time = yyyy + '-' + mm + '-' + dd + ' ' + h + ':' + min + ' ' + ampm;
-
-            return time;
-        }
-
         function listSoftwareTitles(contributor_id, source_url) {
             $('#table-' + contributor_id).DataTable({
                 "paging": false,
@@ -156,11 +156,68 @@
                     { "targets": 2, "orderable": false, "data": "name" },
                     { "targets": 3, "data": "publisher" },
                     { "targets": 4, "data": "currentVersion" },
-                    { "targets": 5, "data": "lastModified" }
+                    { "targets": 5, "data": "lastModified" },
+                    {
+                        "targets": 6,
+                        "orderable": false,
+                        "data": "id",
+                        "render": function ( data, type, row, meta ) {
+                            console.log('Sync Inner: ' + last_sync);
+                            if (last_sync !== null && last_sync !== '') {
+                                if (Boolean(last_sync)) {
+                                    return '<span class="fas fa-sync fa-sm" style="color: #00FF00;"></span>';
+                                }
+                                else {
+                                    return '<span class="fas fa-sync fa-sm" style="color: #FF0000;"></span>';
+                                }
+                            }
+                            else {
+                                return '';
+                            }
+                        }
+                    }
                 ]
             });
 
         }
+
+        function ConvertFormToJSON(form){
+            var array = jQuery(form).serializeArray();
+            var json = {};
+
+            jQuery.each(array, function() {
+                json[this.name] = this.value || '';
+            });
+
+            return json;
+        }
+
+        var registerForm = $('#registerModalForm');
+
+        registerForm.on('submit', function (event) {
+            //stop submit the form, we will post it manually.
+            event.preventDefault();
+            var jsonData = ConvertFormToJSON(registerForm);
+            $("#registerModalSubmit").prop("disabled", true);
+
+            $.ajax({
+                type: "POST",
+                url: "../api/v1/contributors/register",
+                dataType: 'json',
+                contentType: "application/json",
+                data: JSON.stringify(jsonData),
+                cache: false,
+                success: function (data) {
+                    console.log("SUCCESS: ", data);
+                    location.reload();
+                },
+                error: function (e) {
+                    console.log("ERROR: ", e);
+                    console.log("ERROR MSG: ", e.responseText);
+                    location.reload();
+                }
+            });
+        });
 
         function getParameterByName(name, url) {
             if (!url) url = window.location.href;
