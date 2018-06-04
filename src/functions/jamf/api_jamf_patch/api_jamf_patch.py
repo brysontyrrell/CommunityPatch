@@ -49,7 +49,7 @@ def redirect(contributor_id, title_id):
     def redirect_url():
         return urlunparse(
             (
-                'https',
+                'http',
                 DOMAIN_NAME,
                 os.path.join('titles', contributor_id, title_id),
                 None,
@@ -61,11 +61,8 @@ def redirect(contributor_id, title_id):
     return {
         'isBase64Encoded': False,
         'statusCode': 302,
-        'body': json.dumps(''),
-        'headers': {
-            'Content-Type': 'application/json',
-            'Location': redirect_url()
-        }
+        'body': '',
+        'headers': {'Location': redirect_url()}
     }
 
 

@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
-Description: A serverless Patch Server for Jamf Pro using AWS.
+Description: A community managed patch server for Jamf Pro.
 
 Parameters:
 
@@ -38,6 +38,18 @@ Resources:
 
   TitlesBucket:
     Type: AWS::S3::Bucket
+
+  TitlesBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref TitlesBucket
+      PolicyDocument:
+        Statement:
+          - Action: s3:GetObject
+            Effect: Allow
+            Resource: !Sub '${TitlesBucket.Arn}/*'
+            Principal:
+              AWS: !Sub 'arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}'
 
 # DynamoDB Tables
 
@@ -197,10 +209,11 @@ Resources:
 
 # CloudFront Distribution
 
-#  CloudFrontOriginAccessIdentity:
-#    Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity"
-#      Properties:
-#        Comment: !Sub '${AWS::StackName}-origin-access-identity'
+  CloudFrontOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub '${AWS::StackName}-origin-access-identity'
 
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
@@ -243,12 +256,27 @@ Resources:
           TargetOriginId: ApiGatewayOrigin
           ViewerProtocolPolicy: https-only
 
+        CacheBehaviors:
+          - Compress: true
+            DefaultTTL: 300
+            ForwardedValues:
+              QueryString: true
+            PathPattern: '/titles/*'
+            MaxTTL: 300
+            TargetOriginId: TitlesBucketOrigin
+            ViewerProtocolPolicy: allow-all
+
         Origins:
           - DomainName: !Sub '${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com'
             Id: ApiGatewayOrigin
             CustomOriginConfig:
               OriginProtocolPolicy: https-only
             OriginPath: /Prod
+
+          - DomainName: !GetAtt TitlesBucket.DomainName
+            Id: TitlesBucketOrigin
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
 
 # Route 53 Record
 
