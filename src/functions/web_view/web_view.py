@@ -2,7 +2,6 @@ import logging
 import os
 
 import boto3
-from botocore.exceptions import ClientError
 import jinja2
 
 logger = logging.getLogger()
@@ -42,7 +41,7 @@ def get_contributors():
         {
             'id': i['id'],
             'name': i['display_name'],
-            'url': '/'.join(['jamf/v1', i['id'], 'software'])
+            'url': '/'.join(['jamf/v1', i['id'], 'software?extend'])
         }
         for i in scan_contributors_table()
         if i['verified_account']
