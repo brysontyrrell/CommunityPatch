@@ -51,4 +51,5 @@ def get_contributors():
 
 
 def lambda_handler(event, context):
-    return template.render(contributors=get_contributors())
+    return template.render(
+        contributors=get_contributors(), domain_name=DOMAIN_NAME)

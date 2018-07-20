@@ -332,6 +332,7 @@ Resources:
       Environment:
         Variables:
           CONTRIBUTORS_TABLE: !Ref ContributorsTable
+          DOMAIN_NAME: !Ref DomainName
           TITLES_TABLE: !Ref TitlesTable
       Policies:
         Statement:
