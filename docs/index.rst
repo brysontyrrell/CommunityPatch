@@ -1,18 +1,32 @@
 CommunityPatch.com
 ==================
 
-CommunityPatch.com is a free, open-source patch server for Jamf Pro
-administrators to post patch definitions they maintain for the broader Jamf
+CommunityPatch.com is a free, open-source patch source for Jamf Pro
+administrators to publish patch definitions they maintain for the broader Jamf
 community to subscribe to.
 
 .. note::
 
     This documentation covers CommunityPatch ``Beta2``.
 
-.. warning::
+Become a Contributor and manage patch definitions for the community by
+registering.
 
-   Looking for ``Beta1`` documentation? Click :doc:`here <../beta1/beta1>`.
-   Beta1 will be removed in the near future.
+.. toctree::
+    :maxdepth: 1
+    :caption: Contributors
 
+    contributors/register
+    contributors/jamf_subscribe
 
-``Beta2`` documentation coming soon...
+Use your API token to manage patch definitions for your and the community's use.
+
+.. toctree::
+    :maxdepth: 1
+    :caption: Patch API Documentation
+
+    api/auth
+    api/create
+    api/update
+
+Join the discussion on the `MacAdmins Slack <https://macadmins.slack.com/messages/C9Z5YUN5N>`_.

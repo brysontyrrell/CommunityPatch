@@ -1,0 +1,2 @@
+Subscribe in Jamf Pro
+=====================
