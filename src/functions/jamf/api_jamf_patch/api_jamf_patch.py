@@ -43,8 +43,8 @@ def response(message, status_code):
 
 
 def redirect(contributor_id, title_id):
-    """Returns a dictionary object for an API Gateway Lambda integration
-    response.
+    """Returns a response for API Gateway that redirects to the CloudFront
+    location of a patch definition's JSON file.
 
     :param str contributor_id: The contributor ID
     :param str title_id: The title ID
@@ -65,7 +65,7 @@ def redirect(contributor_id, title_id):
 
     return {
         'isBase64Encoded': False,
-        'statusCode': 302,
+        'statusCode': 301,
         'body': '',
         'headers': {'Location': redirect_url()}
     }
