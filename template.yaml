@@ -222,6 +222,17 @@ Resources:
                 uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiJamfPatch.Arn}/invocations'
               responses: {}
 
+#  ApiGatewayUsagePlan:
+#    Type: AWS::ApiGateway::UsagePlan
+#    Properties:
+#      ApiStages:
+#        - ApiId: !Ref ApiGateway
+#          Stage: Prod
+#      Quota:
+#        Limit: 1000
+#        Period: DAY
+#      Throttle: ThrottleSettings
+
 # CloudFront Distribution
 
   CloudFrontOriginAccessIdentity:
