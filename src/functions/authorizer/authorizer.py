@@ -24,7 +24,7 @@ def generate_policy(principal_id, effect=None, resource=None, context=None):
                 {
                     'Action': 'execute-api:Invoke',
                     'Effect': effect,
-                    'Resource': resource
+                    'Resource': '/'.join(resource.split('/')[:2] + ['*'])
                 }
             ]
         }

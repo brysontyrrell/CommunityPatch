@@ -134,7 +134,7 @@ Resources:
             x-amazon-apigateway-authorizer:
               type: token
               authorizerUri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Authorizer.Arn}/invocations'
-              authorizerResultTtlInSeconds: 5
+              authorizerResultTtlInSeconds: 300
 
         paths:
 
@@ -582,7 +582,7 @@ Resources:
 
   EmailService:
     Type: AWS::Serverless::Function
-    Description:
+    Description: Email notification service.
     Properties:
       Runtime: python3.6
       Handler: email_service.lambda_handler
