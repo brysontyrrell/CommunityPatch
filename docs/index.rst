@@ -25,8 +25,8 @@ Use your API token to manage patch definitions for your and the community's use.
     :maxdepth: 1
     :caption: Patch API Documentation
 
-    api/auth
     api/create
     api/update
+    api/delete
 
 Join the discussion on the `MacAdmins Slack <https://macadmins.slack.com/messages/C9Z5YUN5N>`_.
