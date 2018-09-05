@@ -1,0 +1,1 @@
+git+https://github.com/brysontyrrell/Opossum.git#egg=opossum

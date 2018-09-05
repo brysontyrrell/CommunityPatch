@@ -1,0 +1,54 @@
+{
+  "$id": "http://example.com/example.json",
+  "type": "object",
+  "definitions": {},
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "properties": {
+    "author_email": {
+      "$id": "/properties/author_email",
+      "type": "string",
+      "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+      "examples": [
+        "bryson.tyrrell@gmail.com"
+      ]
+    },
+    "author_name": {
+      "$id": "/properties/author_name",
+      "type": "string",
+      "pattern": "^\\S.+\\S$",
+      "examples": [
+        "Bryson Tyrrell"
+      ]
+    },
+    "definition": {
+      "$id": "/properties/definition",
+      "type": "object"
+    },
+    "definition_url": {
+      "$id": "/properties/definition_url",
+      "type": "string"
+    },
+    "github_repo": {
+      "$id": "/properties/definition_url",
+      "type": "string"
+    }
+  },
+  "required": [
+    "author_email",
+    "author_name"
+  ],
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [ "definition" ]
+    },
+    {
+      "type": "object",
+      "required": [ "definition_url" ]
+    },
+    {
+      "type": "object",
+      "required": ["github_repo"]
+    }
+  ]
+}

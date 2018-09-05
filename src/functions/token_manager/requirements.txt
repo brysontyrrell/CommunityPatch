@@ -1,2 +1,0 @@
-aws-xray-sdk==0.97
-PyJWT==1.5.3

@@ -9,86 +9,55 @@ Add a New Software Title Definition
 
    The examples provided below will reference this script.
 
-Add a Title Using JSON
-----------------------
+POST /api/v1/titles
+-------------------
 
-Create a new patch definition on CommunityPatch by providing the entire
-definition JSON body. You must provide a JSON payload containing an
-``author_name`` and an ``author_email`` in addition to the full software title
-definition under the ``definition`` key.
+Create a new patch definition. The JSON payload should contain the data for the
+full patch definition.
 
 .. code-block:: text
 
-    POST /api/v1/title
+    POST /api/v1/titles
+    Content-Type: application/json
 
 .. code-block:: json
 
-   {
-      "author_name": "<NAME>",
-      "author_email": "<EMAIL>",
-      "definition": {}
-   }
+    {
+        "id": "",
+        "name": "",
+        "publisher": "",
+        "appName": "",
+        "bundleId": "",
+        "requirements": [],
+        "patches": [],
+        "extensionAttributes": []
+    }
 
-The ``id`` and ``name`` values of the provided software title definition will be
-modified to include the ``author_name`` (as a unique identifier for the title).
+Response
+--------
 
-On success, an API token to manage this software title will be sent to the
-provided email address. The modified ``id`` and ``name`` values will be returned
-with the API request as well as included in the email.
+On success you will receive a message stating the new title has been created.
 
-.. note::
+.. code-block:: text
 
-   Your email address is not stored in a usable format. It is saved as a hashed
-   value with the record of the software title. This hash is only used to
-   validate requests to reset the API token for a definition.
+    201 Created
+    Content-Type: application/json
+
+.. code-block:: json
+
+    {
+        "message": "Title '{ID}' created"
+    }
+
+Examples
+--------
 
 An example using ``curl`` and ``Patch-Starter-Script``:
 
 .. code-block:: bash
 
-   curl https://beta.communitypatch.com/api/v1/title \
-      -X POST \
-      -d "{\"author_name\": \"<NAME>\", \"author_email\": \"<EMAIL>\", \"definition\": $(python patchstarter.py /Applications/<APP> -p "<PUBLISHER>")}" \
-      -H 'Content-Type: application/json'
-
-Add a Synced Title Using a URL
-------------------------------
-
-Create a sycned patch definition on CommunityPatch by providing a source URL
-to a definition hosted on another server. AFter a successful creation, the
-definition will be synced every 30 minutes from the source URL. You must provide
-a JSON payload containing an ``author_name`` and an ``author_email`` in addition
-to a ``definition_url`` key containing the source URL.
-
-.. code-block:: text
-
-    POST /api/v1/title
-
-.. code-block:: json
-
-    {
-      "author_name": "<NAME>",
-      "author_email": "<EMAIL>",
-      "definition_url": "<URL>"
-   }
-
-The ``id`` and ``name`` values of the provided software title definition will be
-modified to include the ``author_name`` (as a unique identifier for the title).
-
-On success, an API token to manage this software title will be sent to the
-provided email address. The modified ``id`` and ``name`` values will be returned
-with the API request as well as included in the email.
-
-.. note::
-
-    A synced definition cannot be updated using the API. THe token can only be
-    used to delete the title.
-
-An example ``curl`` command:
-
-.. code-block:: bash
-
-   curl https://beta.communitypatch.com/api/v1/title \
-      -X POST \
-      -d "{\"author_name\": \"<NAME>\", \"author_email\": \"<EMAIL>\", \"definition_url\": \"<URL>\"}" \
-      -H 'Content-Type: application/json'
+    curl https://beta2.communitypatch.com/api/v1/titles \
+        -X POST \
+        -d "$(python patchstarter.py '/Applications/{APP}' -p '{PUBLISHER}')" \
+        -H 'Content-Type: application/json' \
+        -H 'Authorization: Bearer {API-KEY}'

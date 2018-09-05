@@ -1,65 +1,70 @@
 CommunityPatch.com
 ==================
 
-CommunityPatch.com is a free, open-source patch server for Jamf Pro
-administrators to post patch definitions they maintain for the broader Jamf
+CommunityPatch.com is a free, open-source patch source for Jamf Pro
+administrators to publish patch definitions they maintain for the broader Jamf
 community to subscribe to.
-
-Manage Titles with the API
---------------------------
-
-If you want to contribute to the patch definitions available on CommunityPatch,
-read how to in the API documentation.
-
-.. toctree::
-   :maxdepth: 1
-
-   api/create
-   api/update
-
-Add CommunityPatch.com to Jamf Pro
-----------------------------------
-
-Configure as an External Patch Source in Jamf Pro.
 
 .. note::
 
-    "External Patch Sources" is a feature of Jamf Pro v10.2+.
+    This documentation covers CommunityPatch ``Beta2``.
 
-To add your CommunityPatch.com as a **Patch External Source** in Jamf Pro, go to
-**Settings > Computer Management > Patch Management** in the management console.
+.. contents::
+   :depth: 2
+   :local:
 
-.. image:: _static/jamf_setup_01.png
-   :align: center
+Subscribing to Contributors
+---------------------------
 
-Click the **+ New** button next to **Patch External Source**. On the next screen
-assign a name to your Patch Server. In the **SERVER** field enter the URL as
-shown::
+Each Contributor to CommunityPatch maintains their own set of software titles
+that any Jamf administrator can subscribe to. If you wish to use the definitions
+provided by a subscriber, you may do so using their unique ID.
 
-   beta.communitypatch.com/jamf/v1
+.. note::
 
-In the **PORT** field enter ``443`` (can also be left blank).
+    Each Contributor on this service acts as an independent external patch
+    source. Refer to `Jamf's documentation <https://www.jamf.com/jamf-nation/articles/497/jamf-pro-external-patch-source-endpoints>`_
+    to learn more about external patch sources.
 
-Ensure the **Use SSL** box is checked.
+In Jamf Pro, navigate to **Settings > Computer Management > Patch Management**.
+Click the **+ New** button to add a new external patch source.
 
-.. image:: _static/jamf_setup_02.png
-   :align: center
+Provide a ``Display Name`` and enter the address for the Contributor's source
+into the ``Server and Port`` field as follows:
 
-After saving your settings, a **Test** button will be available on the Patch
-Server's page. Click it to verify Jamf Pro can connect to CommunityPatch.com and
-data is being received.
+.. code-block:: text
 
-.. image:: _static/jamf_setup_03.png
-   :align: center
+    beta2.communitypatch.com/jamf/v1/{CONTRIBUTOR_ID}
 
-CommunityPatch.com will now be displayed on the **Patch Management** settings
-page.
+.. image:: _static/jamf_subscribe_01.png
+    :scale: 75%
 
-.. image:: _static/jamf_setup_04.png
-   :align: center
+After saving, use the **Test** option to verify Jamf Pro can successfully
+connect to the
 
-You will now be able to choose software titles to subscribe to from the
-**Computers > Patch Management > Software Titles** list.
+.. image:: _static/jamf_subscribe_02.png
+    :scale: 75%
 
-.. image:: _static/jamf_setup_05.png
-   :align: center
+Managing Software Titles as a Contributor
+-----------------------------------------
+
+Become a Contributor and manage patch definitions for the community by
+registering.
+
+.. toctree::
+    :maxdepth: 1
+    :caption: Contributors
+
+    contributors/register
+
+Use your API token to manage patch definitions for your and the community's use.
+
+.. toctree::
+    :maxdepth: 1
+    :caption: Patch API Documentation
+
+    api/create
+    api/update
+    api/delete
+
+Join the discussion on the `MacAdmins Slack <https://macadmins.slack.com/messages/C9Z5YUN5N>`_.
