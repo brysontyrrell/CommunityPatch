@@ -41,7 +41,7 @@ def get_contributors():
         {
             'id': i['id'],
             'name': i['display_name'],
-            'url': '/'.join(['jamf/v1', i['id'], 'software?extend'])
+            'url': '/'.join(['jamf/v1', i['id'], 'software'])
         }
         for i in scan_contributors_table()
         if i['verified_account']
