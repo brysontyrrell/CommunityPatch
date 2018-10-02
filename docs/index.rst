@@ -56,6 +56,7 @@ registering.
     :caption: Contributors
 
     contributors/register
+    contributors/api
 
 Use your API token to manage patch definitions for your and the community's use.
 
