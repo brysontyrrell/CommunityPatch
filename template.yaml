@@ -359,14 +359,7 @@ Resources:
       CodeUri: ./src/functions/web_view
       Environment:
         Variables:
-          CONTRIBUTORS_TABLE: !Ref ContributorsTable
           DOMAIN_NAME: !Ref DomainName
-          TITLES_TABLE: !Ref TitlesTable
-      Policies:
-        Statement:
-          - Effect: Allow
-            Action: dynamodb:Scan
-            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ContributorsTable}'
       Events:
         Index:
           Type: Api
