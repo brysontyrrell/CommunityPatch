@@ -8,7 +8,7 @@ import boto3
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
-from opossum import api
+from opossum import api, dydb
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -21,20 +21,6 @@ DOMAIN_NAME = os.getenv('DOMAIN_NAME')
 TITLES_TABLE = os.getenv('TITLES_TABLE')
 
 dynamodb = boto3.resource('dynamodb')
-
-
-def scan_contributors_table():
-    contributors_table = dynamodb.Table(CONTRIBUTORS_TABLE)
-
-    results = contributors_table.scan()
-    while True:
-        for row in results['Items']:
-            yield row
-        if results.get('LastEvaluatedKey'):
-            results = dynamodb.scan(
-                ExclusiveStartKey=results['LastEvaluatedKey'])
-        else:
-            break
 
 
 def get_title_count(contributor_id):
@@ -61,11 +47,9 @@ def lambda_handler(event, context):
     2. Query for title counts for each
     3. Return JSON array
     """
-    contributors = scan_contributors_table()
-
     results = list()
 
-    for contributor in contributors:
+    for contributor in dydb.scan_table(CONTRIBUTORS_TABLE):
         title_count = get_title_count(contributor['id'])
         uri = '/'.join(['jamf/v1', contributor['id'], 'software'])
         results.append(
