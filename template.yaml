@@ -310,11 +310,16 @@ Resources:
             ViewerProtocolPolicy: allow-all
 
           - Compress: true
-            DefaultTTL: 3600
             ForwardedValues:
               QueryString: true
             PathPattern: '/images/*'
-            MaxTTL: 3600
+            TargetOriginId: WebContentBucketOrigin
+            ViewerProtocolPolicy: allow-all
+
+          - Compress: true
+            ForwardedValues:
+              QueryString: true
+            PathPattern: '/css/*'
             TargetOriginId: WebContentBucketOrigin
             ViewerProtocolPolicy: allow-all
 

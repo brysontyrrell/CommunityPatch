@@ -31,6 +31,7 @@
     <!-- DataTables -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs4-4.0.0/jq-3.2.1/dt-1.10.16/r-2.2.1/datatables.min.css"/>
     <script type="text/javascript" src="https://cdn.datatables.net/v/bs4-4.0.0/jq-3.2.1/dt-1.10.16/r-2.2.1/datatables.min.js"></script>
+    <script type="text/javascript" src="/css/dataTables.conditionalPaging.js"></script>
 
     <!-- Favicon -->
     <link rel="apple-touch-icon" sizes="57x57" href="../images/favicon/57x57.png">
@@ -60,6 +61,14 @@
 
         .table-responsive {
             display: table;
+        }
+
+        .dataTables_paginate{
+            float: left;
+        }
+
+        .dataTables_wrapper {
+            font-size: 12px;
         }
     </style>
   </head>
@@ -117,8 +126,8 @@
 
             <!--<div class="row">-->
                 <div>
-                    <h3 style="display: inline;">{{ contributor.display_name }}</h3>
-                    <p style="display: inline;"><i>({{ contributor.id }})</i></p>
+                    <h4 style="display: inline;">{{ contributor.display_name }}</h4>
+                    <p style="display: inline; font-size: 12px"><i>({{ contributor.id }})</i></p>
                 </div>
             <!--</div>-->
 
@@ -139,6 +148,10 @@
                 </table>
             </div>
 
+            <div>
+                <br>
+            </div>
+
             {% endif %}
         {% endfor %}
     </div>
@@ -146,12 +159,18 @@
     <script type="text/javascript">
         function listSoftwareTitles(contributor_id, source_url) {
             $('#table-' + contributor_id).DataTable({
-                "paging": false,
-                "searching": false,
+                "paging": true,
+                "searching": true,
+                "pageLength": 5,
+                "dom": "<'row'<'col-sm-8 text-left'p><'col-sm-4'f>>" +
+                       "<'row'<'col-sm-12't>>",
+                "conditionalPaging": true,
                 "bInfo": false,
                 "language": {
-                    "zeroRecords": "No Software Titles From This Contributor"
+                    "zeroRecords": "No Software Titles From This Contributor",
+                    "search": "Filter:",
                 },
+                "order": [[ 5, "desc" ]],
                 "ajax": {
                     "url": source_url + '?extend',
                     "dataSrc": "",
