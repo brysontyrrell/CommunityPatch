@@ -4,9 +4,10 @@ Description: A community managed patch server for Jamf Pro.
 
 Parameters:
 
-  ApiTokenSecretKey:
+  ParameterStorePath:
     Type: String
-    Description: The key used for generating and validating API tokens.
+    Description: The root path for parameter store values.
+    Default: /communitypatch
 
   DomainName:
     Type: String
@@ -24,14 +25,6 @@ Parameters:
     Type: String
     Description: The UUID for the certificate to use for the custom domain.
 
-  EncryptionKeyId:
-    Type: String
-    Description: ID of the KMS key to decrypt parameter store values.
-
-  DatabaseKeyParameter:
-    Type: String
-    Description: The alias for the database key stored in parameter store.
-
 # SAM Globals
 
 Globals:
@@ -40,9 +33,10 @@ Globals:
     MemorySize: 256
     Environment:
       Variables:
-        DOMAIN_NAME: !Ref DomainName
         CONTRIBUTORS_TABLE: !Ref ContributorsTable
+        DOMAIN_NAME: !Ref DomainName
         EMAIL_SNS_TOPIC: !Ref SendEmailTopic
+        PARAM_STORE_PATH: !Ref ParameterStorePath
         TITLES_BUCKET: !Ref TitlesBucket
         TITLES_TABLE: !Ref TitlesTable
 
@@ -422,9 +416,6 @@ Resources:
       Layers:
         - !Ref ApiSharedLayer
         - !Ref SecuritySharedLayer
-      Environment:
-        Variables:
-          DB_KEY_PARAMETER: !Ref DatabaseKeyParameter
       Policies:
         Statement:
           - Effect: Allow
@@ -435,10 +426,7 @@ Resources:
             Resource: !Ref SendEmailTopic
           - Effect: Allow
             Action: ssm:GetParameter*
-            Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/communitypatch*'
-          - Effect: Allow
-            Action: kms:Decrypt
-            Resource: !Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${EncryptionKeyId}'
+            Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ParameterStorePath}*'
       Events:
         ApiContributorRegistration:
           Type: Api
@@ -456,9 +444,6 @@ Resources:
       Handler: api_contributor_verification.lambda_handler
       Layers:
         - !Ref SecuritySharedLayer
-      Environment:
-        Variables:
-          SECRET_KEY: !Ref ApiTokenSecretKey
       Policies:
         Statement:
           - Effect: Allow
@@ -471,10 +456,7 @@ Resources:
             Resource: !Ref SendEmailTopic
           - Effect: Allow
             Action: ssm:GetParameter*
-            Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/communitypatch*'
-          - Effect: Allow
-            Action: kms:Decrypt
-            Resource: !Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${EncryptionKeyId}'
+            Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ParameterStorePath}*'
       Events:
         ApiContributorRegistration:
           Type: Api
@@ -523,7 +505,6 @@ Resources:
       Environment:
         Variables:
           BLACKLIST_TABLE: !Ref BlackListedTokensTable
-          SECRET_KEY: !Ref ApiTokenSecretKey
       Policies:
         Statement:
           - Effect: Allow

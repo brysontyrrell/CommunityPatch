@@ -3,7 +3,6 @@ import logging
 import os
 import sys
 from urllib.parse import urlencode, urlunparse
-import uuid
 
 # Add '/opt' to the PATH for Lambda Layers
 sys.path.append('/opt')
@@ -13,7 +12,8 @@ sys.path.append('/opt')
 import boto3
 from botocore.exceptions import ClientError
 from cryptography.fernet import Fernet, InvalidToken
-import jwt
+
+from security_helpers import create_legacy_token, get_database_key
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -24,21 +24,9 @@ logger.setLevel(logging.INFO)
 CONTRIBUTORS_TABLE = os.getenv('CONTRIBUTORS_TABLE')
 DOMAIN_NAME = os.getenv('DOMAIN_NAME')
 EMAIL_SNS_TOPIC = os.getenv('EMAIL_SNS_TOPIC')
-SECRET_KEY = os.getenv('SECRET_KEY')
-
-if not SECRET_KEY:
-    raise Exception('Internal Server Error')
 
 dynamodb = boto3.resource('dynamodb')
-
-
-def get_database_key(name):
-    ssm_client = boto3.client('ssm')
-    resp = ssm_client.get_parameter(Name=name, WithDecryption=True)
-    return resp['Parameter']['Value']
-
-
-fernet = Fernet(get_database_key(os.getenv('DB_KEY_PARAMETER')))
+fernet = Fernet(get_database_key())
 
 
 def redirect_url(status):
@@ -143,21 +131,6 @@ def update_contributor(contributor_id, token_id):
         raise
 
 
-def create_token(contributor_id):
-    token_id = uuid.uuid4().hex
-
-    api_token = jwt.encode(
-        {
-            'jti': token_id,
-            'sub': contributor_id
-        },
-        SECRET_KEY,
-        algorithm='HS256'
-    ).decode()
-
-    return api_token, token_id
-
-
 def lambda_handler(event, context):
     logger.info(event)
     try:
@@ -184,7 +157,7 @@ def lambda_handler(event, context):
         logger.error('The verification codes do not match!')
         return response('invalid-code')
 
-    api_token, token_id = create_token(contributor_id)
+    api_token, token_id = create_legacy_token(contributor_id)
 
     try:
         update_contributor(contributor_id, token_id)

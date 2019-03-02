@@ -18,6 +18,7 @@ from cryptography.fernet import Fernet
 from jsonschema import validate, ValidationError
 
 from api_helpers import response
+from security_helpers import get_database_key
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -29,14 +30,7 @@ CONTRIBUTORS_TABLE = os.getenv('CONTRIBUTORS_TABLE')
 DOMAIN_NAME = os.getenv('DOMAIN_NAME')
 EMAIL_SNS_TOPIC = os.getenv('EMAIL_SNS_TOPIC')
 
-
-def get_database_key(name):
-    ssm_client = boto3.client('ssm')
-    resp = ssm_client.get_parameter(Name=name, WithDecryption=True)
-    return resp['Parameter']['Value']
-
-
-fernet = Fernet(get_database_key(os.getenv('DB_KEY_PARAMETER')))
+fernet = Fernet(get_database_key())
 
 with open('schemas/schema_request.json', 'r') as f_obj:
     schema_request = json.load(f_obj)
