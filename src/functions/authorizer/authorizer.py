@@ -1,5 +1,9 @@
 import logging
 import os
+import sys
+
+# Add '/opt' to the PATH for Lambda Layers
+sys.path.append('/opt')
 
 import boto3
 from botocore.exceptions import ClientError

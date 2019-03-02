@@ -376,6 +376,22 @@ Resources:
     DependsOn:
       - ApiShared
 
+  SecurityShared:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/layers/security_shared
+      Handler: index.lambda_handler
+
+  SecuritySharedLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: ./.aws-sam/build/SecurityShared
+      CompatibleRuntimes:
+        - python3.6
+      RetentionPolicy: Delete
+    DependsOn:
+      - SecurityShared
+
 # Web View
 
   WebView:
@@ -401,8 +417,11 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Creates and rotates tokens.
     Properties:
-      Handler: api_contributor_registration.lambda_handler
       CodeUri: ./src/functions/contributors/api_contributor_registration
+      Handler: api_contributor_registration.lambda_handler
+      Layers:
+        - !Ref ApiSharedLayer
+        - !Ref SecuritySharedLayer
       Environment:
         Variables:
           DB_KEY_PARAMETER: !Ref DatabaseKeyParameter
@@ -433,8 +452,10 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Generate an API token upon account verification.
     Properties:
-      Handler: api_contributor_verification.lambda_handler
       CodeUri: ./src/functions/contributors/api_contributor_verification
+      Handler: api_contributor_verification.lambda_handler
+      Layers:
+        - !Ref SecuritySharedLayer
       Environment:
         Variables:
           SECRET_KEY: !Ref ApiTokenSecretKey
@@ -467,8 +488,11 @@ Resources:
     Type: AWS::Serverless::Function
     Description: List contributors on CommunityPatch.
     Properties:
-      Handler: api_contributors_get.lambda_handler
       CodeUri: ./src/functions/contributors/api_contributors_get
+      Handler: api_contributors_get.lambda_handler
+      Layers:
+        - !Ref ApiSharedLayer
+        - !Ref SecuritySharedLayer
       Policies:
         Statement:
           - Effect: Allow
@@ -492,8 +516,10 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Token validation for Uploader.
     Properties:
-      Handler: authorizer.lambda_handler
       CodeUri: ./src/functions/authorizer
+      Handler: authorizer.lambda_handler
+      Layers:
+        - !Ref SecuritySharedLayer
       Environment:
         Variables:
           BLACKLIST_TABLE: !Ref BlackListedTokensTable

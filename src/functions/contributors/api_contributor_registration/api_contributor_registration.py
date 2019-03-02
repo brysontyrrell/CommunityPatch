@@ -2,9 +2,13 @@ import hashlib
 import json
 import logging
 import os
+import sys
 import time
 from urllib.parse import urlencode, urlunparse
 import uuid
+
+# Add '/opt' to the PATH for Lambda Layers
+sys.path.append('/opt')
 
 # from aws_xray_sdk.core import xray_recorder
 # from aws_xray_sdk.core import patch
@@ -12,6 +16,8 @@ import boto3
 from botocore.exceptions import ClientError
 from cryptography.fernet import Fernet
 from jsonschema import validate, ValidationError
+
+from api_helpers import response
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -34,26 +40,6 @@ fernet = Fernet(get_database_key(os.getenv('DB_KEY_PARAMETER')))
 
 with open('schemas/schema_request.json', 'r') as f_obj:
     schema_request = json.load(f_obj)
-
-
-def response(message, status_code):
-    """Returns a dictionary object for an API Gateway Lambda integration
-    response.
-
-    :param str message: Message for JSON body of response
-    :param int status_code: HTTP status code of response
-
-    :rtype: dict
-    """
-    if isinstance(message, str):
-        message = {'message': message}
-
-    return {
-        'isBase64Encoded': False,
-        'statusCode': status_code,
-        'body': json.dumps(message),
-        'headers': {'Content-Type': 'application/json'}
-    }
 
 
 def send_email(recipient, name, url):

@@ -1,8 +1,12 @@
 import json
 import logging
 import os
+import sys
 from urllib.parse import urlencode, urlunparse
 import uuid
+
+# Add '/opt' to the PATH for Lambda Layers
+sys.path.append('/opt')
 
 # from aws_xray_sdk.core import xray_recorder
 # from aws_xray_sdk.core import patch
