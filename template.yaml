@@ -219,6 +219,7 @@ Resources:
               responses: {}
               security:
               - authorizer: []
+
           "/jamf/v1/{contributor}/software":
             get:
               x-amazon-apigateway-integration:
@@ -356,6 +357,24 @@ Resources:
         DNSName: !GetAtt CloudFrontDistribution.DomainName
         EvaluateTargetHealth: false
         HostedZoneId: Z2FDTNDATAQYW2
+
+# Lambda Layers
+
+  ApiShared:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/layers/api_shared
+      Handler: index.lambda_handler
+
+  ApiSharedLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: ./.aws-sam/build/ApiShared
+      CompatibleRuntimes:
+        - python3.6
+      RetentionPolicy: Delete
+    DependsOn:
+      - ApiShared
 
 # Web View
 
@@ -502,8 +521,10 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Handles API requests for creating software title definitions.
     Properties:
-      Handler: api_titles_create.lambda_handler
       CodeUri: ./src/functions/titles/api_titles_create
+      Handler: api_titles_create.lambda_handler
+      Layers:
+        - !Ref ApiSharedLayer
       Policies:
         Statement:
           - Effect: Allow
@@ -525,8 +546,10 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Handles API requests for updating patch definitions.
     Properties:
-      Handler: api_titles_update.lambda_handler
       CodeUri: ./src/functions/titles/api_titles_update
+      Handler: api_titles_update.lambda_handler
+      Layers:
+        - !Ref ApiSharedLayer
       Policies:
         Statement:
           - Effect: Allow
@@ -552,8 +575,10 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Handles API requests for deleting patch definitions.
     Properties:
-      Handler: api_titles_delete.lambda_handler
       CodeUri: ./src/functions/titles/api_titles_delete
+      Handler: api_titles_delete.lambda_handler
+      Layers:
+        - !Ref ApiSharedLayer
       Policies:
         Statement:
         - Effect: Allow
