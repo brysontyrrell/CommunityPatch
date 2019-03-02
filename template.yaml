@@ -13,10 +13,6 @@ Parameters:
     Type: String
     Description: The custom domain name for the API.
 
-  EmailSenderAddress:
-    Type: String
-    Description: The "from" address for email notifications from this service.
-
   HostedZoneId:
     Type: AWS::Route53::HostedZone::Id
     Description: The ID of hosted zone for the Route53 record.
@@ -668,9 +664,6 @@ Resources:
     Properties:
       Handler: email_service.lambda_handler
       CodeUri: ./src/functions/email_service
-      Environment:
-        Variables:
-          SENDER_ADDRESS: !Ref EmailSenderAddress
       Policies:
         Statement:
           - Effect: Allow
@@ -678,7 +671,7 @@ Resources:
             Resource: '*'
             Condition:
               StringEquals:
-                ses:FromAddress: !Ref EmailSenderAddress
+                ses:FromAddress: !Sub 'noreply@${DomainName}'
       Events:
         SnsTopic:
           Type: SNS
