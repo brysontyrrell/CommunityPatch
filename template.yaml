@@ -32,6 +32,20 @@ Parameters:
     Type: String
     Description: The alias for the database key stored in parameter store.
 
+# SAM Globals
+
+Globals:
+  Function:
+    Runtime: python3.6
+    MemorySize: 256
+    Environment:
+      Variables:
+        DOMAIN_NAME: !Ref DomainName
+        CONTRIBUTORS_TABLE: !Ref ContributorsTable
+        EMAIL_SNS_TOPIC: !Ref SendEmailTopic
+        TITLES_BUCKET: !Ref TitlesBucket
+        TITLES_TABLE: !Ref TitlesTable
+
 Resources:
 
 # S3 Buckets
@@ -85,6 +99,7 @@ Resources:
   TitlesTable:
     Type: AWS::DynamoDB::Table
     Properties:
+      BillingMode: PAY_PER_REQUEST
 
       AttributeDefinitions:
       - AttributeName: contributor_id
@@ -97,17 +112,6 @@ Resources:
         KeyType: HASH
       - AttributeName: title_id
         KeyType: RANGE
-
-      ProvisionedThroughput:
-        ReadCapacityUnits: '5'
-        WriteCapacityUnits: '5'
-
-  GitHubReposTable:
-    Type: AWS::Serverless::SimpleTable
-    Properties:
-      PrimaryKey:
-        Name: contributor_id
-        Type: String
 
 # SNS Topics
 
@@ -359,12 +363,9 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Renders the main web page displaying all available titles.
     Properties:
-      Runtime: python3.6
       Handler: web_view.lambda_handler
       CodeUri: ./src/functions/web_view
-      Environment:
-        Variables:
-          DOMAIN_NAME: !Ref DomainName
+      Timeout: 15
       Events:
         Index:
           Type: Api
@@ -381,15 +382,11 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Creates and rotates tokens.
     Properties:
-      Runtime: python3.6
       Handler: api_contributor_registration.lambda_handler
       CodeUri: ./src/functions/contributors/api_contributor_registration
       Environment:
         Variables:
-          CONTRIBUTORS_TABLE: !Ref ContributorsTable
           DB_KEY_PARAMETER: !Ref DatabaseKeyParameter
-          DOMAIN_NAME: !Ref DomainName
-          EMAIL_SNS_TOPIC: !Ref SendEmailTopic
       Policies:
         Statement:
           - Effect: Allow
@@ -417,15 +414,10 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Generate an API token upon account verification.
     Properties:
-      Runtime: python3.6
       Handler: api_contributor_verification.lambda_handler
       CodeUri: ./src/functions/contributors/api_contributor_verification
       Environment:
         Variables:
-          CONTRIBUTORS_TABLE: !Ref ContributorsTable
-          DB_KEY_PARAMETER: !Ref DatabaseKeyParameter
-          DOMAIN_NAME: !Ref DomainName
-          EMAIL_SNS_TOPIC: !Ref SendEmailTopic
           SECRET_KEY: !Ref ApiTokenSecretKey
       Policies:
         Statement:
@@ -456,14 +448,8 @@ Resources:
     Type: AWS::Serverless::Function
     Description: List contributors on CommunityPatch.
     Properties:
-      Runtime: python3.6
       Handler: api_contributors_get.lambda_handler
       CodeUri: ./src/functions/contributors/api_contributors_get
-      Environment:
-        Variables:
-          CONTRIBUTORS_TABLE: !Ref ContributorsTable
-          TITLES_TABLE: !Ref TitlesTable
-          DOMAIN_NAME: !Ref DomainName
       Policies:
         Statement:
           - Effect: Allow
@@ -487,7 +473,6 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Token validation for Uploader.
     Properties:
-      Runtime: python3.6
       Handler: authorizer.lambda_handler
       CodeUri: ./src/functions/authorizer
       Environment:
@@ -517,13 +502,8 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Handles API requests for creating software title definitions.
     Properties:
-      Runtime: python3.6
       Handler: api_titles_create.lambda_handler
       CodeUri: ./src/functions/titles/api_titles_create
-      Environment:
-        Variables:
-          TITLES_BUCKET: !Ref TitlesBucket
-          TITLES_TABLE: !Ref TitlesTable
       Policies:
         Statement:
           - Effect: Allow
@@ -545,13 +525,8 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Handles API requests for updating patch definitions.
     Properties:
-      Runtime: python3.6
       Handler: api_titles_update.lambda_handler
       CodeUri: ./src/functions/titles/api_titles_update
-      Environment:
-        Variables:
-          TITLES_BUCKET: !Ref TitlesBucket
-          TITLES_TABLE: !Ref TitlesTable
       Policies:
         Statement:
           - Effect: Allow
@@ -577,13 +552,8 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Handles API requests for deleting patch definitions.
     Properties:
-      Runtime: python3.6
       Handler: api_titles_delete.lambda_handler
       CodeUri: ./src/functions/titles/api_titles_delete
-      Environment:
-        Variables:
-          TITLES_BUCKET: !Ref TitlesBucket
-          TITLES_TABLE: !Ref TitlesTable
       Policies:
         Statement:
         - Effect: Allow
@@ -609,12 +579,8 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Handles Jamf Pro requests for software lists.
     Properties:
-      Runtime: python3.6
       Handler: api_jamf_software.lambda_handler
       CodeUri: ./src/functions/jamf/api_jamf_software
-      Environment:
-        Variables:
-          TITLES_TABLE: !Ref TitlesTable
       Policies:
         Statement:
           - Effect: Allow
@@ -642,13 +608,8 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Handles Jamf Pro requests for patch definitions.
     Properties:
-      Runtime: python3.6
       Handler: api_jamf_patch.lambda_handler
       CodeUri: ./src/functions/jamf/api_jamf_patch
-      Environment:
-        Variables:
-          DOMAIN_NAME: !Ref DomainName
-          TITLES_BUCKET: !Ref TitlesBucket
       Policies:
         Statement:
           - Effect: Allow
@@ -669,7 +630,6 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Email notification service.
     Properties:
-      Runtime: python3.6
       Handler: email_service.lambda_handler
       CodeUri: ./src/functions/email_service
       Environment:
