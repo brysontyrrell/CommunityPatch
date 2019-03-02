@@ -1,2 +1,2 @@
-cryptography==2.2.2
+cryptography==2.4.1
 jsonschema==2.6.0

@@ -6,14 +6,15 @@ name = "pypi"
 [packages]
 opossum = {git = "https://github.com/brysontyrrell/Opossum.git"}
 pyjwt = "==1.5.3"
-cryptography = "==2.2.2"
 jsonschema = "==2.6.0"
 "jinja2" = "==2.10"
 "boto3" = "*"
+cryptography = "*"
 
 [dev-packages]
 sphinx = "*"
 sphinx-rtd-theme = "*"
+wheel = "*"
 
 [requires]
 python_version = "3.6"
