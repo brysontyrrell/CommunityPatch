@@ -604,8 +604,10 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Handles Jamf Pro requests for software lists.
     Properties:
-      Handler: api_jamf_software.lambda_handler
       CodeUri: ./src/functions/jamf/api_jamf_software
+      Handler: api_jamf_software.lambda_handler
+      Layers:
+        - !Ref ApiSharedLayer
       Policies:
         Statement:
           - Effect: Allow
@@ -633,8 +635,10 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Handles Jamf Pro requests for patch definitions.
     Properties:
-      Handler: api_jamf_patch.lambda_handler
       CodeUri: ./src/functions/jamf/api_jamf_patch
+      Handler: api_jamf_patch.lambda_handler
+      Layers:
+        - !Ref ApiSharedLayer
       Policies:
         Statement:
           - Effect: Allow
