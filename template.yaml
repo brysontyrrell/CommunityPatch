@@ -506,6 +506,9 @@ Resources:
           - Effect: Allow
             Action: dynamodb:GetItem
             Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BlackListedTokensTable}'
+          - Effect: Allow
+            Action: ssm:GetParameter*
+            Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ParameterStorePath}*'
 
   AuthorizerPermissions:
     Type: AWS::Lambda::Permission

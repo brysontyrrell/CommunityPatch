@@ -11,9 +11,9 @@ sys.path.append('/opt')
 # from aws_xray_sdk.core import patch
 import boto3
 from botocore.exceptions import ClientError
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import InvalidToken
 
-from security_helpers import create_legacy_token, get_database_key
+from security_helpers import create_legacy_token, get_fernet
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -26,7 +26,7 @@ DOMAIN_NAME = os.getenv('DOMAIN_NAME')
 EMAIL_SNS_TOPIC = os.getenv('EMAIL_SNS_TOPIC')
 
 dynamodb = boto3.resource('dynamodb')
-fernet = Fernet(get_database_key())
+fernet = get_fernet()
 
 
 def redirect_url(status):
