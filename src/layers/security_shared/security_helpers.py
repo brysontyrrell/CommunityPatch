@@ -1,5 +1,6 @@
 import base64
 import os
+import time
 import uuid
 
 import boto3
@@ -43,10 +44,14 @@ def get_fernet():
 
 def create_token(contributor_id):
     token_id = uuid.uuid4().hex
+    now = int(time.time())
+
     api_token = jwt.encode(
         {
             'jti': token_id,
-            'sub': contributor_id
+            'sub': contributor_id,
+            'iat': now,
+            'exp': now + 31536000  # one year
         },
         parameters['token_private_key'],
         algorithm='RS256'

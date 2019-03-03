@@ -13,7 +13,7 @@ import boto3
 from botocore.exceptions import ClientError
 from cryptography.fernet import InvalidToken
 
-from security_helpers import create_legacy_token, get_fernet
+from security_helpers import create_token, get_fernet
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -157,7 +157,7 @@ def lambda_handler(event, context):
         logger.error('The verification codes do not match!')
         return response('invalid-code')
 
-    api_token, token_id = create_legacy_token(contributor_id)
+    api_token, token_id = create_token(contributor_id)
 
     try:
         update_contributor(contributor_id, token_id)
