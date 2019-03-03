@@ -43,14 +43,6 @@ def redirect_url(status):
 
 
 def response(status):
-    """Returns a dictionary object for an API Gateway Lambda integration
-    response.
-
-    :param str status: The status for the redirect query string
-
-    :rtype: dict
-    """
-
     return {
         'isBase64Encoded': False,
         'statusCode': 302,

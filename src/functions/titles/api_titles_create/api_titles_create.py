@@ -61,7 +61,6 @@ def delete_table_entry(patch_id, contributor_id):
 
 
 def write_definition_to_s3(patch_definition, contributor_id):
-    """Save the definition to S3 bucket"""
     try:
         s3_bucket.put_object(
             Body=json.dumps(patch_definition),

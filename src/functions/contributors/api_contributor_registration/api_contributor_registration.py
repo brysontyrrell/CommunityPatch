@@ -83,11 +83,6 @@ def write_new_contributor(id_, name, email, verification_code):
 
 
 def lambda_handler(event, context):
-    """
-    1) Load request body
-    2) Check if 'contributor' exists in database
-    3) If not, create, initiate confirmation email
-    """
     try:
         request_data = json.loads(event['body'])
     except (TypeError, json.JSONDecodeError):

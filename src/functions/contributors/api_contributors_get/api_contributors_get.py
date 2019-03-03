@@ -45,12 +45,6 @@ def get_title_count(contributor_id):
 
 @api.handler
 def lambda_handler(event, context):
-    """Order of operations:
-
-    1. Get all contributors
-    2. Query for title counts for each
-    3. Return JSON array
-    """
     results = list()
 
     for contributor in dydb.scan_table(CONTRIBUTORS_TABLE):
