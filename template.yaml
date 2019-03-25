@@ -26,6 +26,7 @@ Parameters:
 Globals:
   Function:
     Runtime: python3.6
+    Handler: index.lambda_handler
     MemorySize: 256
     Environment:
       Variables:
@@ -195,7 +196,10 @@ Resources:
               x-amazon-apigateway-integration:
                 httpMethod: post
                 type: aws_proxy
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiTitlesUpdate.Arn}/invocations'
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiTitleVersionsAdd.Arn}/invocations'
+              responses: {}
+              security:
+                - authorizer: []
               responses: {}
               security:
                 - authorizer: []
@@ -354,7 +358,6 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/layers/api_shared
-      Handler: index.lambda_handler
 
   ApiSharedLayer:
     Type: AWS::Serverless::LayerVersion
@@ -370,7 +373,6 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/layers/security_shared
-      Handler: index.lambda_handler
 
   SecuritySharedLayer:
     Type: AWS::Serverless::LayerVersion
@@ -388,7 +390,6 @@ Resources:
     Type: AWS::Serverless::Function
     Description: Renders the main web page displaying all available titles.
     Properties:
-      Handler: web_view.lambda_handler
       CodeUri: ./src/functions/web_view
       Timeout: 15
       Events:
@@ -472,13 +473,10 @@ Resources:
         - !Ref ApiSharedLayer
         - !Ref SecuritySharedLayer
       Policies:
-        Statement:
-          - Effect: Allow
-            Action: dynamodb:Scan
-            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ContributorsTable}'
-          - Effect: Allow
-            Action: dynamodb:Query
-            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TitlesTable}'
+        - DynamoDBReadPolicy:
+            TableName: !Ref ContributorsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref TitlesTable
       Events:
         ApiContributorRegistration:
           Type: Api
@@ -532,13 +530,10 @@ Resources:
       Layers:
         - !Ref ApiSharedLayer
       Policies:
-        Statement:
-          - Effect: Allow
-            Action: s3:PutObject
-            Resource: !Sub 'arn:aws:s3:::${TitlesBucket}/*'
-          - Effect: Allow
-            Action: dynamodb:PutItem
-            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TitlesTable}'
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TitlesTable
+        - S3CrudPolicy:
+            BucketName: !Ref TitlesBucket
       Events:
         CreateTitle:
           Type: Api
@@ -548,28 +543,19 @@ Resources:
             RestApiId:
                 Ref: ApiGateway
 
-  ApiTitlesUpdate:
+  ApiTitleVersionsAdd:
     Type: AWS::Serverless::Function
-    Description: Handles API requests for updating patch definitions.
     Properties:
-      CodeUri: ./src/functions/titles/api_titles_update
-      Handler: api_titles_update.lambda_handler
+      CodeUri: ./src/functions/titles/versions_add
       Layers:
         - !Ref ApiSharedLayer
       Policies:
-        Statement:
-          - Effect: Allow
-            Action:
-             - s3:GetObject
-             - s3:PutObject
-            Resource: !Sub 'arn:aws:s3:::${TitlesBucket}/*'
-          - Effect: Allow
-            Action:
-              - dynamodb:GetItem
-              - dynamodb:UpdateItem
-            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TitlesTable}'
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TitlesTable
+        - S3CrudPolicy:
+            BucketName: !Ref TitlesBucket
       Events:
-        UpdateTitle:
+        NewVersion:
           Type: Api
           Properties:
             Path: /api/v1/titles/{title}/version
