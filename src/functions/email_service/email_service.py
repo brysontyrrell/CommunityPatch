@@ -13,7 +13,7 @@ logger.setLevel(logging.INFO)
 # xray_recorder.configure(service='CommunityPatch')
 # patch(['boto3'])
 
-SENDER_ADDRESS = os.getenv('SENDER_ADDRESS')
+DOMAIN_NAME = os.getenv('DOMAIN_NAME')
 
 function_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -56,7 +56,7 @@ def send_email(data):
                 'Data': subject,
             },
         },
-        Source=f'Commuinity Patch <{SENDER_ADDRESS}>'
+        Source=f'Commuinity Patch <noreply@{DOMAIN_NAME}>'
     )
 
 

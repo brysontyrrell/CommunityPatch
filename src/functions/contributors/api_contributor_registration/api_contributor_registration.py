@@ -2,9 +2,13 @@ import hashlib
 import json
 import logging
 import os
+import sys
 import time
 from urllib.parse import urlencode, urlunparse
 import uuid
+
+# Add '/opt' to the PATH for Lambda Layers
+sys.path.append('/opt')
 
 # from aws_xray_sdk.core import xray_recorder
 # from aws_xray_sdk.core import patch
@@ -12,6 +16,9 @@ import boto3
 from botocore.exceptions import ClientError
 from cryptography.fernet import Fernet
 from jsonschema import validate, ValidationError
+
+from api_helpers import response
+from security_helpers import get_fernet
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -23,37 +30,10 @@ CONTRIBUTORS_TABLE = os.getenv('CONTRIBUTORS_TABLE')
 DOMAIN_NAME = os.getenv('DOMAIN_NAME')
 EMAIL_SNS_TOPIC = os.getenv('EMAIL_SNS_TOPIC')
 
-
-def get_database_key(name):
-    ssm_client = boto3.client('ssm')
-    resp = ssm_client.get_parameter(Name=name, WithDecryption=True)
-    return resp['Parameter']['Value']
-
-
-fernet = Fernet(get_database_key(os.getenv('DB_KEY_PARAMETER')))
+fernet = get_fernet()
 
 with open('schemas/schema_request.json', 'r') as f_obj:
     schema_request = json.load(f_obj)
-
-
-def response(message, status_code):
-    """Returns a dictionary object for an API Gateway Lambda integration
-    response.
-
-    :param str message: Message for JSON body of response
-    :param int status_code: HTTP status code of response
-
-    :rtype: dict
-    """
-    if isinstance(message, str):
-        message = {'message': message}
-
-    return {
-        'isBase64Encoded': False,
-        'statusCode': status_code,
-        'body': json.dumps(message),
-        'headers': {'Content-Type': 'application/json'}
-    }
 
 
 def send_email(recipient, name, url):
@@ -103,11 +83,6 @@ def write_new_contributor(id_, name, email, verification_code):
 
 
 def lambda_handler(event, context):
-    """
-    1) Load request body
-    2) Check if 'contributor' exists in database
-    3) If not, create, initiate confirmation email
-    """
     try:
         request_data = json.loads(event['body'])
     except (TypeError, json.JSONDecodeError):

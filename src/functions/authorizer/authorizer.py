@@ -1,15 +1,19 @@
 import logging
 import os
+import sys
+
+# Add '/opt' to the PATH for Lambda Layers
+sys.path.append('/opt')
 
 import boto3
 from botocore.exceptions import ClientError
-import jwt
+
+from security_helpers import validate_token
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 BLACKLIST_TABLE = os.getenv('BLACKLIST_TABLE')
-SECRET_KEY = os.getenv('SECRET_KEY')
 
 
 def generate_policy(principal_id, effect=None, resource=None, context=None):
@@ -51,16 +55,6 @@ def read_token_from_header(event):
         raise Exception('Unauthorized')
 
     return token
-
-
-def validate_token(token):
-    try:
-        decoded_token = jwt.decode(token, SECRET_KEY, algorithms='HS256')
-    except jwt.InvalidTokenError:
-        logger.exception('Authentication failed')
-        raise Exception('Unauthorized')
-
-    return decoded_token
 
 
 def is_token_blacklisted(token_id):

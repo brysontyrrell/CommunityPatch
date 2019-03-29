@@ -2,12 +2,18 @@ import io
 import json
 import logging
 import os
-from urllib.parse import urlunparse
+import sys
+
+# Add '/opt' to the PATH for Lambda Layers
+sys.path.append('/opt')
 
 # from aws_xray_sdk.core import xray_recorder
 # from aws_xray_sdk.core import patch
 import boto3
 from botocore.exceptions import ClientError
+
+from opossum import api
+from opossum.exc import APINotFound
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -18,57 +24,6 @@ logger.setLevel(logging.INFO)
 DOMAIN_NAME = os.getenv('DOMAIN_NAME')
 
 s3_bucket = boto3.resource('s3').Bucket(os.getenv('TITLES_BUCKET'))
-
-
-def response(message, status_code):
-    """Returns a dictionary object for an API Gateway Lambda integration
-    response.
-
-    :param message: Message for JSON body of response
-    :type message: str or dict
-
-    :param int status_code: HTTP status code of response
-
-    :rtype: dict
-    """
-    if isinstance(message, str):
-        message = {'message': message}
-
-    return {
-        'isBase64Encoded': False,
-        'statusCode': status_code,
-        'body': json.dumps(message),
-        'headers': {'Content-Type': 'application/json'}
-    }
-
-
-def redirect(contributor_id, title_id):
-    """Returns a response for API Gateway that redirects to the CloudFront
-    location of a patch definition's JSON file.
-
-    :param str contributor_id: The contributor ID
-    :param str title_id: The title ID
-
-    :rtype: dict
-    """
-    def redirect_url():
-        return urlunparse(
-            (
-                'http',
-                DOMAIN_NAME,
-                os.path.join('titles', contributor_id, title_id),
-                None,
-                None,
-                None
-            )
-        )
-
-    return {
-        'isBase64Encoded': False,
-        'statusCode': 301,
-        'body': '',
-        'headers': {'Location': redirect_url()}
-    }
 
 
 def read_definition_from_s3(contributor_id, title_id):
@@ -85,6 +40,7 @@ def read_definition_from_s3(contributor_id, title_id):
     return json.loads(f_obj.getvalue())
 
 
+@api.handler
 def lambda_handler(event, context):
     parameters = event['pathParameters']
 
@@ -95,6 +51,6 @@ def lambda_handler(event, context):
     try:
         definition = read_definition_from_s3(contributor_id, title_id)
     except ClientError:
-        return response('Not Found', 404)
+        raise APINotFound('Not Found')
 
-    return response(definition, 200)
+    return definition, 200

@@ -1,15 +1,19 @@
 import json
 import logging
 import os
+import sys
 from urllib.parse import urlencode, urlunparse
-import uuid
+
+# Add '/opt' to the PATH for Lambda Layers
+sys.path.append('/opt')
 
 # from aws_xray_sdk.core import xray_recorder
 # from aws_xray_sdk.core import patch
 import boto3
 from botocore.exceptions import ClientError
-from cryptography.fernet import Fernet, InvalidToken
-import jwt
+from cryptography.fernet import InvalidToken
+
+from security_helpers import create_token, get_fernet
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -20,21 +24,9 @@ logger.setLevel(logging.INFO)
 CONTRIBUTORS_TABLE = os.getenv('CONTRIBUTORS_TABLE')
 DOMAIN_NAME = os.getenv('DOMAIN_NAME')
 EMAIL_SNS_TOPIC = os.getenv('EMAIL_SNS_TOPIC')
-SECRET_KEY = os.getenv('SECRET_KEY')
-
-if not SECRET_KEY:
-    raise Exception('Internal Server Error')
 
 dynamodb = boto3.resource('dynamodb')
-
-
-def get_database_key(name):
-    ssm_client = boto3.client('ssm')
-    resp = ssm_client.get_parameter(Name=name, WithDecryption=True)
-    return resp['Parameter']['Value']
-
-
-fernet = Fernet(get_database_key(os.getenv('DB_KEY_PARAMETER')))
+fernet = get_fernet()
 
 
 def redirect_url(status):
@@ -51,14 +43,6 @@ def redirect_url(status):
 
 
 def response(status):
-    """Returns a dictionary object for an API Gateway Lambda integration
-    response.
-
-    :param str status: The status for the redirect query string
-
-    :rtype: dict
-    """
-
     return {
         'isBase64Encoded': False,
         'statusCode': 302,
@@ -137,21 +121,6 @@ def update_contributor(contributor_id, token_id):
     except ClientError as error:
         logger.exception(f'DynamoDB: {error.response}')
         raise
-
-
-def create_token(contributor_id):
-    token_id = uuid.uuid4().hex
-
-    api_token = jwt.encode(
-        {
-            'jti': token_id,
-            'sub': contributor_id
-        },
-        SECRET_KEY,
-        algorithm='HS256'
-    ).decode()
-
-    return api_token, token_id
 
 
 def lambda_handler(event, context):

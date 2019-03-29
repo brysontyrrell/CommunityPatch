@@ -7,7 +7,7 @@ community to subscribe to.
 
 .. note::
 
-    This documentation covers CommunityPatch ``Beta2``.
+    This documentation covers CommunityPatch ``Beta 2``.
 
 .. contents::
    :depth: 2
@@ -56,6 +56,7 @@ registering.
     :caption: Contributors
 
     contributors/register
+    contributors/api
 
 Use your API token to manage patch definitions for your and the community's use.
 
@@ -63,8 +64,9 @@ Use your API token to manage patch definitions for your and the community's use.
     :maxdepth: 1
     :caption: Patch API Documentation
 
-    api/create
-    api/update
-    api/delete
+    api/create_title
+    api/add_version
+    api/delete_version
+    api/delete_title
 
 Join the discussion on the `MacAdmins Slack <https://macadmins.slack.com/messages/C9Z5YUN5N>`_.

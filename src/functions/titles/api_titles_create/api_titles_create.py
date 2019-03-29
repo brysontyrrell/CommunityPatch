@@ -1,12 +1,18 @@
 import json
 import logging
 import os
+import sys
+
+# Add '/opt' to the PATH for Lambda Layers
+sys.path.append('/opt')
 
 # from aws_xray_sdk.core import xray_recorder
 # from aws_xray_sdk.core import patch
 import boto3
 from botocore.exceptions import ClientError
 from jsonschema import validate, ValidationError
+
+from api_helpers import response
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -21,28 +27,6 @@ s3_bucket = boto3.resource('s3').Bucket(os.getenv('TITLES_BUCKET'))
 
 with open('schemas/schema_full_definition.json', 'r') as f_obj:
     schema_definition = json.load(f_obj)
-
-
-def response(message, status_code):
-    """Returns a dictionary object for an API Gateway Lambda integration
-    response.
-
-    :param message: Message for JSON body of response
-    :type message: str or dict
-
-    :param int status_code: HTTP status code of response
-
-    :rtype: dict
-    """
-    if isinstance(message, str):
-        message = {'message': message}
-
-    return {
-        'isBase64Encoded': False,
-        'statusCode': status_code,
-        'body': json.dumps(message),
-        'headers': {'Content-Type': 'application/json'}
-    }
 
 
 def create_table_entry(patch_definition, contributor_id):
@@ -77,7 +61,6 @@ def delete_table_entry(patch_id, contributor_id):
 
 
 def write_definition_to_s3(patch_definition, contributor_id):
-    """Save the definition to S3 bucket"""
     try:
         s3_bucket.put_object(
             Body=json.dumps(patch_definition),

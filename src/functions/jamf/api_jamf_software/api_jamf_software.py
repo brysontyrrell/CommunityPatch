@@ -1,12 +1,18 @@
-import json
 import logging
 import os
+import sys
+
+# Add '/opt' to the PATH for Lambda Layers
+sys.path.append('/opt')
 
 # from aws_xray_sdk.core import xray_recorder
 # from aws_xray_sdk.core import patch
 import boto3
-from boto3.dynamodb.conditions import Attr, Key
+from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
+
+from opossum import api
+from opossum.exc import APINotFound
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -17,28 +23,6 @@ logger.setLevel(logging.INFO)
 TITLES_TABLE = os.getenv('TITLES_TABLE')
 
 dynamodb = boto3.resource('dynamodb')
-
-
-def response(message, status_code):
-    """Returns a dictionary object for an API Gateway Lambda integration
-    response.
-
-    :param message: Message for JSON body of response
-    :type message: str or dict or list
-
-    :param int status_code: HTTP status code of response
-
-    :rtype: dict
-    """
-    if isinstance(message, str):
-        message = {'message': message}
-
-    return {
-        'isBase64Encoded': False,
-        'statusCode': status_code,
-        'body': json.dumps(message),
-        'headers': {'Content-Type': 'application/json'}
-    }
 
 
 def list_software_titles(contributor_id, extend=False):
@@ -70,7 +54,7 @@ def list_software_titles(contributor_id, extend=False):
     else:
         results = [i['summary'] for i in resp['Items']]
 
-    return response(results, 200)
+    return results, 200
 
 
 def list_select_software_titles(contributor_id, path_parameter):
@@ -102,9 +86,10 @@ def list_select_software_titles(contributor_id, path_parameter):
         if result:
             title_list.append(result)
 
-    return response(title_list, 200)
+    return title_list, 200
 
 
+@api.handler
 def lambda_handler(event, context):
     resource = event['resource']
     parameters = event['pathParameters']
@@ -126,4 +111,4 @@ def lambda_handler(event, context):
         )
 
     else:
-        return response('Not Found', 404)
+        raise APINotFound('Not Found')
