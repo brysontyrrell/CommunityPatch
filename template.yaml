@@ -196,13 +196,40 @@ Resources:
               x-amazon-apigateway-integration:
                 httpMethod: post
                 type: aws_proxy
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiTitleVersionsAdd.Arn}/invocations'
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiTitleVersions.Arn}/invocations'
               responses: {}
               security:
                 - authorizer: []
+
+          "/api/v1/titles/{title}/version/{version}":
+            delete:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiTitleVersions.Arn}/invocations'
               responses: {}
               security:
                 - authorizer: []
+
+          "/api/v1/titles/{title}/versions":
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: post
+                type: aws_proxy
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiTitleVersions.Arn}/invocations'
+              responses: {}
+              security:
+                - authorizer: []
+
+            "/api/v1/titles/{title}/versions/{version}":
+              delete:
+                x-amazon-apigateway-integration:
+                  httpMethod: post
+                  type: aws_proxy
+                  uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiTitleVersions.Arn}/invocations'
+                responses: {}
+                security:
+                  - authorizer: []
 
           "/api/v1/titles/{title}":
             delete:
@@ -543,10 +570,10 @@ Resources:
             RestApiId:
                 Ref: ApiGateway
 
-  ApiTitleVersionsAdd:
+  ApiTitleVersions:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/functions/titles/versions_add
+      CodeUri: ./src/functions/titles/api_versions
       Layers:
         - !Ref ApiSharedLayer
       Policies:
@@ -555,12 +582,33 @@ Resources:
         - S3CrudPolicy:
             BucketName: !Ref TitlesBucket
       Events:
-        NewVersion:
+        NewVersionDep:
           Type: Api
           Properties:
             Path: /api/v1/titles/{title}/version
             Method: post
             RestApiId:
+                Ref: ApiGateway
+        DeleteVersionDep:
+          Type: Api
+          Properties:
+            Path: /api/v1/titles/{title}/version/{version}
+            Method: delete
+            RestApiId:
+              Ref: ApiGateway
+        NewVersion:
+          Type: Api
+          Properties:
+            Path: /api/v1/titles/{title}/versions
+            Method: post
+            RestApiId:
+              Ref: ApiGateway
+          DeleteVersion:
+            Type: Api
+            Properties:
+              Path: /api/v1/titles/{title}/versions/{version}
+              Method: delete
+              RestApiId:
                 Ref: ApiGateway
 
   ApiTitlesDelete:

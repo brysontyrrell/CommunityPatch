@@ -24,7 +24,7 @@ logger.setLevel(logging.INFO)
 
 TITLES_TABLE = os.getenv('TITLES_TABLE')
 
-dynamodb = boto3.resource('dynamodb')
+titles_table = boto3.resource('dynamodb').Table(os.getenv('TITLES_TABLE'))
 s3_bucket = boto3.resource('s3').Bucket(os.getenv('TITLES_BUCKET'))
 
 
@@ -33,8 +33,6 @@ with open('schemas/schema_version.json', 'r') as f_obj:
 
 
 def read_table_entry(title_id, contributor_id):
-    titles_table = dynamodb.Table(TITLES_TABLE)
-
     try:
         resp = titles_table.get_item(
             Key={
@@ -65,8 +63,6 @@ def read_definition_from_s3(contributor_id, title_id):
 
 def update_table_entry(title_data, contributor_id):
     logger.info("Updating database 'currentVersion' and 'lastModified'")
-    titles_table = dynamodb.Table(TITLES_TABLE)
-
     try:
         titles_table.update_item(
             Key={
@@ -136,28 +132,10 @@ def get_index(params, patches):
     return index
 
 
-def lambda_handler(event, context):
-    parameters = event['pathParameters']
+def add_version(event):
+    contributor_id = event['requestContext']['authorizer']['sub']
+    title_id = event['pathParameters']['title']
     query_string_parameters = event['queryStringParameters']
-
-    try:
-        contributor_id = event['requestContext']['authorizer']['sub']
-    except KeyError:
-        logger.error('Token data not found!')
-        return response('Bad Request', 400)
-
-    title_id = parameters['title']
-
-    try:
-        current_entry = read_table_entry(title_id, contributor_id)
-    except ClientError:
-        return response('Internal Server Error', 500)
-
-    if not current_entry:
-        return response('Title Not Found', 404)
-
-    if not current_entry['api_allowed']:
-        return response('Forbidden: API not allowed for this title', 403)
 
     try:
         data = json.loads(event['body'])
@@ -173,15 +151,12 @@ def lambda_handler(event, context):
             {
                 'message': 'Bad Request: The version failed validation',
                 'validation_error': f"{str(error.message)} for item: "
-                                    f"{'/'.join([str(i) for i in error.path])}"
+                f"{'/'.join([str(i) for i in error.path])}"
             },
             400
         )
 
-    try:
-        definition = read_definition_from_s3(contributor_id, title_id)
-    except ClientError:
-        return response('Internal Server Error', 500)
+    definition = read_definition_from_s3(contributor_id, title_id)
 
     if data['version'] in \
             [patch_['version'] for patch_ in definition['patches']]:
@@ -200,20 +175,66 @@ def lambda_handler(event, context):
     # Use the version of the first patch after the insert operation above
     definition['currentVersion'] = \
         definition['patches'][0]['version']
-
     definition['lastModified'] = \
         datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
 
-    try:
-        update_table_entry(definition, contributor_id)
-    except ClientError:
-        return response(f'Internal Server Error', 500)
-
-    try:
-        write_definition_to_s3(definition, contributor_id)
-    except ClientError:
-        # Revert the DynamoDB entry for cleanup
-        return response('Internal Server Error', 500)
+    update_table_entry(definition, contributor_id)
+    write_definition_to_s3(definition, contributor_id)
+    # Need to revert the DynamoDB entry for cleanup on write failure
 
     return response(
         f"Version '{data['version']}' added to title '{title_id}'", 201)
+
+
+def delete_version(event):
+    contributor_id = event['requestContext']['authorizer']['sub']
+    title_id = event['pathParameters']['title']
+    version = event['pathParameters']['version']
+
+    definition = read_definition_from_s3(contributor_id, title_id)
+
+    if len(definition['patches']) < 2:
+        return response('A title must contain at least 1 version', 400)
+
+    index = next((idx for (idx, d) in enumerate(definition['patches']) if
+                  d['version'] == version), None)
+
+    if index is None:
+        return response('Not Found', 404)
+
+    logger.info(f"Removing version from the definition: {version}")
+    definition['patches'].pop(index)
+
+    # Use the version of the first patch after the delete operation above
+    definition['currentVersion'] = definition['patches'][0]['version']
+    definition['lastModified'] = \
+        datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    update_table_entry(definition, contributor_id)
+    write_definition_to_s3(definition, contributor_id)
+    # Need to revert the DynamoDB entry for cleanup on write failure
+
+    return response(f"Version '{version}' deleted from title", 200)
+
+
+def lambda_handler(event, context):
+    resource = event['resource']
+
+    contributor_id = event['requestContext']['authorizer']['sub']
+    title_id = event['pathParameters']['title']
+
+    current_entry = read_table_entry(title_id, contributor_id)
+
+    if not current_entry:
+        return response('Title Not Found', 404)
+
+    if not current_entry['api_allowed']:
+        return response('Forbidden: API not allowed for this title', 403)
+
+    # There is a lot of duplicate code between these two methods. This should
+    # be improved/consolidated later.
+    if resource == '/api/v1/titles/{title}/version':
+        return add_version(event)
+
+    elif resource == '/api/v1/titles/{title}/version/{version}':
+        return delete_version(event)
