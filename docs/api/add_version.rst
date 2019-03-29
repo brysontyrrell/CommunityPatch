@@ -1,8 +1,8 @@
-Update a Software Title Version
-===============================
+Add a new Version to a Software Title
+=====================================
 
-POST /api/v1/titles/{ID}/version
---------------------------------
+POST /api/v1/titles/{ID}/versions
+---------------------------------
 
 Update a software title's definition with a new version. The JSON payload should
 only contain the data for the version.
@@ -50,7 +50,7 @@ An example using ``curl`` and ``Patch-Starter-Script``:
 
 .. code-block:: bash
 
-    curl https://beta2.communitypatch.com/api/v1/titles/{ID}/version \
+    curl https://beta2.communitypatch.com/api/v1/titles/{ID}/versions \
         -X POST \
         -d "$(python patchstarter.py '/Applications/{APP}' --patch-only)" \
         -H 'Content-Type: application/json' \
@@ -83,7 +83,7 @@ parameters where ``VERSION`` is an existing version in the definition.
 
 .. code-block:: bash
 
-    curl https://beta2.communitypatch.com/api/v1/titles/{ID}/version?insert_after={VERSION} \
+    curl https://beta2.communitypatch.com/api/v1/titles/{ID}/versions?insert_after={VERSION} \
         -X POST \
         -d "$(python patchstarter.py '/Applications/{APP}' --patch-only)" \
         -H 'Content-Type: application/json' \
@@ -99,7 +99,7 @@ insert_before
 
 .. code-block:: bash
 
-    curl https://beta2.communitypatch.com/api/v1/titles/{ID}/version?insert_before={VERSION} \
+    curl https://beta2.communitypatch.com/api/v1/titles/{ID}/versions?insert_before={VERSION} \
         -X POST \
         -d "$(python patchstarter.py '/Applications/{APP}' --patch-only)" \
         -H 'Content-Type: application/json' \
