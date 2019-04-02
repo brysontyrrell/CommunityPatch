@@ -233,8 +233,10 @@ def lambda_handler(event, context):
 
     # There is a lot of duplicate code between these two methods. This should
     # be improved/consolidated later.
-    if resource == '/api/v1/titles/{title}/version':
+    if resource == '/api/v1/titles/{title}/version' or \
+            resource == '/api/v1/titles/{title}/versions':
         return add_version(event)
 
-    elif resource == '/api/v1/titles/{title}/version/{version}':
+    elif resource == '/api/v1/titles/{title}/version/{version}' or \
+            resource == '/api/v1/titles/{title}/versions/{version}':
         return delete_version(event)
