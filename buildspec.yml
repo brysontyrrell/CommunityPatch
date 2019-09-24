@@ -1,0 +1,16 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - sam build --region ${AWS_REGION} --template template.yaml
+  post_build:
+    commands:
+      - |
+        sam package --region ${AWS_REGION} \
+          --s3-bucket ${ARTIFACT_BUCKET} \
+          --output-template-file packaged.yaml
+artifacts:
+  type: zip
+  files:
+    - packaged.yaml
