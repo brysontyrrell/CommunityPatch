@@ -1,13 +1,12 @@
 [[source]]
-url = "https://pypi.python.org/simple"
-verify_ssl = true
 name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
 
 [packages]
-opossum = {git = "https://github.com/brysontyrrell/Opossum.git"}
-pyjwt = "==1.5.3"
-jsonschema = "==2.6.0"
-"jinja2" = "==2.10"
+pyjwt = "*"
+jsonschema = "*"
+"jinja2" = "*"
 "boto3" = "*"
 cryptography = "*"
 
@@ -17,4 +16,4 @@ sphinx-rtd-theme = "*"
 wheel = "*"
 
 [requires]
-python_version = "3.6"
+python_version = "3.7"
