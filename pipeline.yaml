@@ -1,0 +1,196 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+
+  RepositoryOwner:
+    Type: String
+    Default: brysontyrrell
+
+  RepositoryName:
+    Type: String
+    Default: CommunityPatch
+
+  SourceBranch:
+    Type: String
+
+  GitHubToken:
+    Type: String
+    Description: Personal access token with 'write:repo_hook' permission.
+    NoEcho: True
+
+  WebHookSecret:
+    Type: String
+    Description: A string of characters to serve as the GitHub webhook signing secret.
+    NoEcho: True
+
+Resources:
+
+# S3
+
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+
+# IAM
+
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: CodeBuildPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject*
+                  - s3:PutObject*
+                Resource: !Sub 'arn:aws:s3:::${ArtifactBucket}/*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - arn:aws:logs:*:*:log-group:/aws/codebuild/*
+
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: CodePipelinePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - codebuild:*
+                  - cloudformation:*
+                  - cloudwatch:*
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject*
+                  - s3:PutObject*
+                Resource: !Sub 'arn:aws:s3:::${ArtifactBucket}/*'
+
+  CloudFormationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+              AWS:
+                - !GetAtt CodePipelineRole.Arn
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+
+# CodeBuild
+
+  BuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+        EncryptionDisabled: True
+      BadgeEnabled: False
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: lambci/lambda:build-python3.7
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Type: PLAINTEXT
+            Name: ARTIFACT_BUCKET
+            Value: !Ref ArtifactBucket
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+      TimeoutInMinutes: 20
+      QueuedTimeoutInMinutes: 180
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Source:
+        Type: CODEPIPELINE
+
+# CodePipeline
+
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStores:
+        - ArtifactStore:
+            Type: S3
+            Location: !Ref ArtifactBucket
+          Region: !Ref AWS::Region
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: GitHubCheckout
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: 1
+              Configuration:
+                Owner: !Ref RepositoryOwner
+                Repo: !Ref RepositoryName
+                Branch: !Ref SourceBranch
+                PollForSourceChanges: False
+                OAuthToken: !Ref GitHubToken
+              OutputArtifacts:
+                - Name: SourceArtifact
+              Region: !Ref AWS::Region
+              RunOrder: 1
+        - Name: Build
+          Actions:
+            - Name: Build
+              InputArtifacts:
+                - Name: SourceArtifact
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              OutputArtifacts:
+                - Name: BuildArtifact
+              Configuration:
+                ProjectName: !Ref BuildProject
+              RunOrder: 1
+
+  PipelineWebHook:
+    Type: AWS::CodePipeline::Webhook
+    Properties:
+      Filters:
+        - JsonPath: '$.ref'
+          MatchEquals: 'refs/heads/{SourceBranch}'
+      Authentication: GITHUB_HMAC
+      AuthenticationConfiguration:
+        SecretToken: !Base64
+          Ref: WebHookSecret
+      TargetPipeline: !Ref Pipeline
+      TargetAction: GitHubCheckout
+      TargetPipelineVersion: 1
+      RegisterWithThirdParty: True
