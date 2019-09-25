@@ -25,7 +25,7 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: python3.6
+    Runtime: python3.7
     Handler: index.lambda_handler
     MemorySize: 256
     Environment:

@@ -3,7 +3,7 @@ version: 0.2
 phases:
   build:
     commands:
-      - sam build --region ${AWS_REGION} --template template.yaml
+      - sam build --region ${AWS_REGION}
   post_build:
     commands:
       - |
