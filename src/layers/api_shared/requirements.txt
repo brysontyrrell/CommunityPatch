@@ -1,2 +1,2 @@
-jsonschema==2.6.0
+jsonschema==3.0.2
 git+https://github.com/brysontyrrell/Opossum.git#egg=opossum
