@@ -23,6 +23,34 @@ Parameters:
     Description: A string of characters to serve as the GitHub webhook signing secret.
     NoEcho: True
 
+  DomainName:
+    Type: String
+
+  HostedZoneId:
+    Type: String
+
+  CertificateId:
+    Type: String
+
+Metadata:
+
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: GitHub Setup
+        Parameters:
+          - RepositoryOwner
+          - RepositoryName
+          - SourceBranch
+          - GitHubToken
+          - WebHookSecret
+      - Label:
+          default: CommunityPatch Setup
+        Parameters:
+          - DomainName
+          - HostedZoneId
+          - CertificateId
+
 Resources:
 
 # S3
@@ -178,6 +206,31 @@ Resources:
                 - Name: BuildArtifact
               Configuration:
                 ProjectName: !Ref BuildProject
+              RunOrder: 1
+        - Name: Deploy
+          Actions:
+            - Name: US.Deployment
+              Region: us-east-1
+              InputArtifacts:
+                - Name: BuildArtifact
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              RoleArn: !GetAtt CloudFormationRole.Arn
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt CloudFormationRole.Arn
+                StackName: communitypatch
+                TemplatePath: 'BuildArtifact::packaged.yaml'
+                ParameterOverrides: !Sub |
+                  {
+                    "DomainName": "${DomainName}",
+                    "HostedZoneId": "${HostedZoneId}",
+                    "CertificateId": "${CertificateId}"
+                  }
               RunOrder: 1
 
   PipelineWebHook:
