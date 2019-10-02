@@ -238,7 +238,7 @@ Resources:
     Properties:
       Filters:
         - JsonPath: '$.ref'
-          MatchEquals: 'refs/heads/{SourceBranch}'
+          MatchEquals: 'refs/heads/{Branch}'
       Authentication: GITHUB_HMAC
       AuthenticationConfiguration:
         SecretToken: !Base64
