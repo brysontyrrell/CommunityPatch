@@ -246,4 +246,4 @@ Resources:
       TargetPipeline: !Ref Pipeline
       TargetAction: GitHubCheckout
       TargetPipelineVersion: 1
-      RegisterWithThirdParty: True
+      RegisterWithThirdParty: False
