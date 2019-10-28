@@ -12,6 +12,7 @@ Parameters:
 
   SourceBranch:
     Type: String
+    Default: master
 
   GitHubToken:
     Type: String
