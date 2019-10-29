@@ -3,14 +3,19 @@ version: 0.2
 phases:
   build:
     commands:
-      - sam build --region ${AWS_REGION}
+      - |
+        sam build \
+          --region "${AWS_REGION}" \
+          --template ${SOURCE_DIR}/template.yaml
   post_build:
     commands:
       - |
-        sam package --region ${AWS_REGION} \
-          --s3-bucket ${ARTIFACT_BUCKET} \
-          --output-template-file packaged.yaml
+        for region_name in "${TARGET_REGIONS}"; do
+          sam package --region "${AWS_REGION}" \
+            --s3-bucket "${NAMESPACE}-communitypatch-${region_name}-artifacts" \
+            --output-template-file "packaged-${SOURCE_DIR}-${region_name}.yaml"
+        done
 artifacts:
   type: zip
   files:
-    - packaged.yaml
+    - packaged-patch-api-*.yaml
