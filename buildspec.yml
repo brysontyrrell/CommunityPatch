@@ -10,7 +10,7 @@ phases:
   post_build:
     commands:
       - |
-        for region_name in "${TARGET_REGIONS}"; do
+        for region_name in ${TARGET_REGIONS}; do
           sam package --region "${AWS_REGION}" \
             --s3-bucket "${NAMESPACE}-communitypatch-${region_name}-artifacts" \
             --output-template-file "packaged-${SOURCE_DIR}-${region_name}.yaml"
