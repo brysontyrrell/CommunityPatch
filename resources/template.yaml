@@ -36,6 +36,8 @@ Resources:
       Runtime: python3.7
       Handler: index.lambda_handler
       CodeUri: ./src/title_sync_service
+      MemorySize: 512
+      Timeout: 10
       Environment:
         Variables:
           NAMESPACE: !Ref Namespace
@@ -50,7 +52,7 @@ Resources:
             Events:
               - s3:ObjectCreated:Put
               - s3:ObjectCreated:Post
-              - s3:ObjectRemoved:Delete
+              - s3:ObjectRemoved:*
             Filter:
               S3Key:
                 Rules:

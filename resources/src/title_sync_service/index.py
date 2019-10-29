@@ -22,8 +22,11 @@ def lambda_handler(event, context):
 
 
 def process_record(record):
+    event_name = record["s3"]["eventName"]
     source_bucket = record["s3"]["bucket"]["name"]
     source_key = record["s3"]["object"]["key"]
+
+    print(f"S3 Event: {event_name}: {source_bucket}/{source_key}")
 
     for region in SYNC_REGIONS:
         target_bucket = titles_bucket(region)
@@ -32,6 +35,9 @@ def process_record(record):
             copy_source = {"Bucket": source_bucket, "Key": source_key}
             target_bucket.copy(CopySource=copy_source, Key=source_key)
 
-        elif record["eventName"] == "ObjectRemoved:Delete":
+        elif record["eventName"] in (
+            "ObjectRemoved:Delete",
+            "ObjectRemoved:DeleteMarkerCreated",
+        ):
             print(f"Deleting {region}: {source_key}")
             target_bucket.delete_objects(Delete={"Objects": [{"Key": source_key}]})
