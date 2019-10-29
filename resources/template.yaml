@@ -19,9 +19,18 @@ Parameters:
 
 Conditions:
   IsNotUsEast1: !Not [!Equals [ !Ref 'AWS::Region', 'us-east-1' ]]
-  IsNotUsEast2: !Not [!Equals [ !Ref 'AWS::Region', 'us-east-2' ]]
-  IsNotEuCentral1: !Not [!Equals [ !Ref 'AWS::Region', 'eu-central-1' ]]
-  IsNotApSoutheast2: !Not [!Equals [ !Ref 'AWS::Region', 'ap-southeast-2' ]]
+
+Mappings:
+  S3Rules:
+    us-east-2:
+      region-1: !Sub ${Namespace}-communitypatch-eu-central-1-titles
+      region-2: !Sub ${Namespace}-communitypatch-ap-southeast-2-titles
+    eu-central-1:
+      region-1: !Sub ${Namespace}-communitypatch-us-east-2-titles
+      region-2: !Sub ${Namespace}-communitypatch-ap-southeast-2-titles
+    ap-southeast-2:
+      region-1: !Sub ${Namespace}-communitypatch-us-east-2-titles
+      region-2: !Sub ${Namespace}-communitypatch-eu-central-1-titles
 
 Resources:
 
@@ -35,27 +44,16 @@ Resources:
       ReplicationConfiguration:
         Role: ''
         Rules:
-          - Fn::If:
-            - IsNotUsEast2
-            - Destination:
-                Bucket: !Sub ${Namespace}-communitypatch-us-east-2-titles
-              Prefix: ''
-              Status: Enabled
-            - !Ref AWS::NoValue
-          - Fn::If:
-            - IsNotUsEast2
-            - Destination:
-                Bucket: !Sub ${Namespace}-communitypatch-eu-central-1-titles
-              Prefix: ''
-              Status: Enabled
-            - !Ref AWS::NoValue
-          - Fn::If:
-            - IsNotUsEast2
-            - Destination:
-                Bucket: !Sub ${Namespace}-communitypatch-ap-southeast-2-titles
-              Prefix: ''
-              Status: Enabled
-            - !Ref AWS::NoValue
+          - Destination:
+              Bucket: !FindInMap [S3Rules, !Ref "AWS::Region", 'region-1']
+            Prefix: ''
+            Status: Enabled
+          - Destination:
+              Bucket: !FindInMap [S3Rules, !Ref "AWS::Region", 'region-2']
+            Prefix: ''
+            Status: Enabled
+      VersioningConfiguration:
+        Status: Enabled
 
 # SSM Parameter Store
 
