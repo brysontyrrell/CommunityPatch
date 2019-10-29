@@ -57,6 +57,7 @@ Resources:
 
   PublishTitlesBucketName:
     Type: AWS::SSM::Parameter
+    Condition: IsNotUsEast1
     Properties:
       Name: !Sub /communitypatch/${Namespace}/titles_bucket_name
       Type: String
