@@ -47,14 +47,14 @@ Resources:
           - Destination:
               Bucket:
                 Fn::Sub:
-                  - ${Namespace}-communitypatch-${Region}-titles
+                  - arn:aws:s3:::${Namespace}-communitypatch-${Region}-titles
                   - { Region: !FindInMap [S3Rules, !Ref "AWS::Region", 'region1'] }
             Prefix: ''
             Status: Enabled
           - Destination:
               Bucket:
                 Fn::Sub:
-                  - ${Namespace}-communitypatch-${Region}-titles
+                  - arn:aws:s3:::${Namespace}-communitypatch-${Region}-titles
                   - { Region: !FindInMap [S3Rules, !Ref "AWS::Region", 'region2'] }
             Prefix: ''
             Status: Enabled
