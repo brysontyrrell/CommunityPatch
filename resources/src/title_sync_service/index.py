@@ -22,7 +22,7 @@ def lambda_handler(event, context):
 
 
 def process_record(record):
-    event_name = record["s3"]["eventName"]
+    event_name = record["eventName"]
     source_bucket = record["s3"]["bucket"]["name"]
     source_key = record["s3"]["object"]["key"]
 
