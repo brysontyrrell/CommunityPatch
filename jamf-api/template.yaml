@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Jamf Pro endpoints for Community Patch
+
+Parameters:
+
+  DomainName:
+    Type: AWS::SSM::Parameter::Value<String>
+
+  HostedZoneId:
+    Type: AWS::SSM::Parameter::Value<String>
+
+  RegionalCertificateArn:
+    Type: AWS::SSM::Parameter::Value<String>
+
+Resources:
+
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      EndpointConfiguration: REGIONAL
+
+  ApiCustomDomain:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      DomainName: !Sub 'jamf.${DomainName}'
+      RegionalCertificateArn: !Ref RegionalCertificateArn
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+
+  ApiBasePath:
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      DomainName: !Ref ApiCustomDomain
+      RestApiId: !Ref ApiGateway
+      Stage: Prod
+    DependsOn:
+      - ApiGateway
+      - ApiGatewayProdStage
+      - ApiCustomDomain
+
+  RegionalRoute53Record:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: !Sub 'jamf.${DomainName}'
+      SetIdentifier: !Sub 'jamf-api-${AWS::Region}'
+      AliasTarget:
+        DNSName: !GetAtt ApiCustomDomain.RegionalDomainName
+        HostedZoneId: !GetAtt ApiCustomDomain.RegionalHostedZoneId
+      HostedZoneId: !Ref HostedZoneId
+      Region: !Ref AWS::Region
+      Type: A
+
+
+
