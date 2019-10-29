@@ -23,14 +23,14 @@ Conditions:
 Mappings:
   S3Rules:
     us-east-2:
-      region1: !Sub ${Namespace}-communitypatch-eu-central-1-titles
-      region2: !Sub ${Namespace}-communitypatch-ap-southeast-2-titles
+      region1: eu-central-1
+      region2: ap-southeast-2
     eu-central-1:
-      region1: !Sub ${Namespace}-communitypatch-us-east-2-titles
-      region2: !Sub ${Namespace}-communitypatch-ap-southeast-2-titles
+      region1: us-east-2
+      region2: ap-southeast-2
     ap-southeast-2:
-      region1: !Sub ${Namespace}-communitypatch-us-east-2-titles
-      region2: !Sub ${Namespace}-communitypatch-eu-central-1-titles
+      region1: us-east-2
+      region2: eu-central-1
 
 Resources:
 
@@ -45,11 +45,17 @@ Resources:
         Role: ''
         Rules:
           - Destination:
-              Bucket: !FindInMap [S3Rules, !Ref "AWS::Region", 'region1']
+              Bucket:
+                Fn::Sub:
+                  - ${Namespace}-communitypatch-${Region}-titles
+                  - { Region: !FindInMap [S3Rules, !Ref "AWS::Region", 'region1'] }
             Prefix: ''
             Status: Enabled
           - Destination:
-              Bucket: !FindInMap [S3Rules, !Ref "AWS::Region", 'region2']
+              Bucket:
+                Fn::Sub:
+                  - ${Namespace}-communitypatch-${Region}-titles
+                  - { Region: !FindInMap [S3Rules, !Ref "AWS::Region", 'region2'] }
             Prefix: ''
             Status: Enabled
       VersioningConfiguration:
