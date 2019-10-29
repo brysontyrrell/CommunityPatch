@@ -43,18 +43,19 @@ Resources:
         - S3CrudPolicy:
             BucketName: !Sub ${Namespace}-communitypatch-*-titles
       Events:
-        Type: S3
-        Properties:
-          Bucket: !Sub ${Namespace}-communitypatch-${AWS::Region}-titles
-          Events:
-            - s3:ObjectCreated:Put
-            - s3:ObjectCreated:Post
-            - s3:ObjectRemoved:Delete
-          Filter:
-            S3Key:
-              Rules:
-                - Name: prefix
-                  Value: titles
+        S3Event:
+          Type: S3
+          Properties:
+            Bucket: !Sub ${Namespace}-communitypatch-${AWS::Region}-titles
+            Events:
+              - s3:ObjectCreated:Put
+              - s3:ObjectCreated:Post
+              - s3:ObjectRemoved:Delete
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: titles
 
 
 # SSM Parameter Store
