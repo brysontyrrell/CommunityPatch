@@ -20,18 +20,6 @@ Parameters:
 Conditions:
   IsNotUsEast1: !Not [!Equals [ !Ref 'AWS::Region', 'us-east-1' ]]
 
-Mappings:
-  S3Rules:
-    us-east-2:
-      region1: eu-central-1
-      region2: ap-southeast-2
-    eu-central-1:
-      region1: us-east-2
-      region2: ap-southeast-2
-    ap-southeast-2:
-      region1: us-east-2
-      region2: eu-central-1
-
 Resources:
 
 # S3 Buckets
@@ -41,23 +29,6 @@ Resources:
     Condition: IsNotUsEast1
     Properties:
       BucketName: !Sub ${Namespace}-communitypatch-${AWS::Region}-titles
-      ReplicationConfiguration:
-        Role: ''
-        Rules:
-          - Destination:
-              Bucket:
-                Fn::Sub:
-                  - arn:aws:s3:::${Namespace}-communitypatch-${Region}-titles
-                  - { Region: !FindInMap [S3Rules, !Ref "AWS::Region", 'region1'] }
-            Prefix: ''
-            Status: Enabled
-          - Destination:
-              Bucket:
-                Fn::Sub:
-                  - arn:aws:s3:::${Namespace}-communitypatch-${Region}-titles
-                  - { Region: !FindInMap [S3Rules, !Ref "AWS::Region", 'region2'] }
-            Prefix: ''
-            Status: Enabled
       VersioningConfiguration:
         Status: Enabled
 
@@ -83,3 +54,10 @@ Resources:
 #      Name: !Sub /communitypatch/${Namespace}/certificate_id
 #      Type: String
 #      Value: !Ref CertificateId
+
+  PublishTitlesBucketName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /communitypatch/${Namespace}/titles_bucket_name
+      Type: String
+      Value: !Ref TitlesBucket
