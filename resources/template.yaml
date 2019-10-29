@@ -18,12 +18,14 @@ Parameters:
 #    Type: String
 
 Conditions:
+  IsNotUsEast1:
+    Fn::Not: !Equals [ !Ref AWS::Region, 'us-east-1' ]
   IsNotUsEast2:
-    Fn::Not: !Equals [ $AWS::Region, 'us-east-2' ]
+    Fn::Not: !Equals [ !Ref AWS::Region, 'us-east-2' ]
   IsNotEuCentral1:
-    Fn::Not: !Equals [ $AWS::Region, 'eu-central-1' ]
+    Fn::Not: !Equals [ !Ref AWS::Region, 'eu-central-1' ]
   IsNotApSoutheast2:
-    Fn::Not: !Equals [ $AWS::Region, 'ap-southeast-2' ]
+    Fn::Not: !Equals [ !Ref AWS::Region, 'ap-southeast-2' ]
 
 Resources:
 
@@ -31,6 +33,7 @@ Resources:
 
   TitlesBucket:
     Type: AWS::S3::Bucket
+    Condition: IsNotUsEast1
     Properties:
       BucketName: !Sub ${Namespace}-communitypatch-${AWS::Region}-titles
       ReplicationConfiguration:
