@@ -17,20 +17,45 @@ Parameters:
 #  CertificateId:
 #    Type: String
 
-Conditions:
-  IsNotUsEast1: !Not [!Equals [ !Ref 'AWS::Region', 'us-east-1' ]]
-
 Resources:
 
 # S3 Buckets
 
   TitlesBucket:
     Type: AWS::S3::Bucket
-    Condition: IsNotUsEast1
     Properties:
       BucketName: !Sub ${Namespace}-communitypatch-${AWS::Region}-titles
       VersioningConfiguration:
         Status: Enabled
+
+# Lambda
+
+  TitleSyncService:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.7
+      Handler: index.lambda_handler
+      CodeUri: ./src/title_sync_service
+      Environment:
+        Variables:
+          NAMESPACE: !Ref Namespace
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Sub ${Namespace}-communitypatch-*-titles
+      Events:
+        Type: S3
+        Properties:
+          Bucket: !Sub ${Namespace}-communitypatch-${AWS::Region}-titles
+          Events:
+            - s3:ObjectCreated:Put
+            - s3:ObjectCreated:Post
+            - s3:ObjectRemoved:Delete
+          Filter:
+            S3Key:
+              Rules:
+                - Name: prefix
+                  Value: titles
+
 
 # SSM Parameter Store
 
@@ -57,7 +82,6 @@ Resources:
 
   PublishTitlesBucketName:
     Type: AWS::SSM::Parameter
-    Condition: IsNotUsEast1
     Properties:
       Name: !Sub /communitypatch/${Namespace}/titles_bucket_name
       Type: String
