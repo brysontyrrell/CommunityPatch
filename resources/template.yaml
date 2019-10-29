@@ -46,7 +46,7 @@ Resources:
         S3Event:
           Type: S3
           Properties:
-            Bucket: !Sub ${Namespace}-communitypatch-${AWS::Region}-titles
+            Bucket: !Ref TitlesBucket
             Events:
               - s3:ObjectCreated:Put
               - s3:ObjectCreated:Post
