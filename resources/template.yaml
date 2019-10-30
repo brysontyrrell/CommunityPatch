@@ -24,7 +24,7 @@ Resources:
   TitlesBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub ${Namespace}-communitypatch-${AWS::Region}-titles
+      BucketName: !Sub communitypatch-${Namespace}-${AWS::Region}-titles
 
 # Lambda
 
@@ -42,7 +42,7 @@ Resources:
           NAMESPACE: !Ref Namespace
       Policies:
         - S3CrudPolicy:
-            BucketName: !Sub ${Namespace}-communitypatch-*-titles
+            BucketName: !Sub communitypatch-${Namespace}-*-titles
       Events:
         S3Event:
           Type: S3
@@ -58,6 +58,39 @@ Resources:
                   - Name: prefix
                     Value: titles
 
+# DynamoDB Tables
+
+  ContributorsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+
+  RevokedTokensTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: token_id
+        Type: String
+
+  TitlesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub CommunityPatch-${Namespace}-TitlesTable-v1
+      BillingMode: PAY_PER_REQUEST
+
+      AttributeDefinitions:
+      - AttributeName: contributor_id
+        AttributeType: S
+      - AttributeName: title_id
+        AttributeType: S
+
+      KeySchema:
+      - AttributeName: contributor_id
+        KeyType: HASH
+      - AttributeName: title_id
+        KeyType: RANGE
 
 # SSM Parameter Store
 
@@ -88,3 +121,24 @@ Resources:
       Name: !Sub /communitypatch/${Namespace}/titles_bucket_name
       Type: String
       Value: !Ref TitlesBucket
+
+  PublishContributorsTableName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /communitypatch/${Namespace}/contributors_table_name
+      Type: String
+      Value: !Ref ContributorsTable
+
+  PublishRevokedTokensTableName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /communitypatch/${Namespace}/revoked_tokens_table_name
+      Type: String
+      Value: !Ref RevokedTokensTable
+
+  PublishTitlesTableName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /communitypatch/${Namespace}/titles_table_name
+      Type: String
+      Value: !Ref TitlesTable
