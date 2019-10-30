@@ -9,6 +9,7 @@ jsonschema = "*"
 "jinja2" = "*"
 "boto3" = "*"
 cryptography = "*"
+aws-xray-sdk = "*"
 
 [dev-packages]
 sphinx = "*"
