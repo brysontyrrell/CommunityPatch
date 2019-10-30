@@ -13,7 +13,26 @@ Parameters:
   RegionalCertificateArn:
     Type: AWS::SSM::Parameter::Value<String>
 
+  TitlesBucketName:
+    Type: AWS::SSM::Parameter::Value<String>
+
+  TitlesTableName:
+    Type: AWS::SSM::Parameter::Value<String>
+
+# SAM Globals
+
+Globals:
+  Function:
+    Runtime: python3.7
+    Handler: index.lambda_handler
+    Environment:
+      Variables:
+        TITLES_BUCKET: !Ref TitlesBucketName
+        TITLES_TABLE: !Ref TitlesTableName
+
 Resources:
+
+# API Gateway
 
   ApiGateway:
     Type: AWS::Serverless::Api
@@ -53,5 +72,45 @@ Resources:
       Region: !Ref AWS::Region
       Type: A
 
+# Lambda
 
+  GetSoftware:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/get_software
+      Policies:
+        Statement:
+          - DynamoDBReadPolicy:
+              TableName: !Ref TitlesTableName
+      Events:
+        GetAllSoftware:
+          Type: Api
+          Properties:
+            Path: /v1/{contributor}/software
+            Method: get
+            RestApiId:
+                Ref: ApiGateway
+        GetSelectSoftware:
+          Type: Api
+          Properties:
+            Path: /v1/{contributor}/software/{titles}
+            Method: get
+            RestApiId:
+                Ref: ApiGateway
 
+  GetPatch:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/get_patch
+      Policies:
+        Statement:
+          - S3ReadPolicy:
+              BucketName: !Ref TitlesBucketName
+      Events:
+        GetPatch:
+          Type: Api
+          Properties:
+            Path: /v1/{contributor}/patch/{title}
+            Method: get
+            RestApiId:
+                Ref: ApiGateway
