@@ -39,41 +39,41 @@ Resources:
     Properties:
       StageName: prod
       EndpointConfiguration: REGIONAL
-      Domain:
-        DomainName: !Sub 'api.${DomainName}'
-        CertificateArn: !Ref RegionalCertificateArn
+#      Domain:
+#        DomainName: !Sub 'api.${DomainName}'
+#        CertificateArn: !Ref RegionalCertificateArn
 
-#  ApiCustomDomain:
-#    Type: AWS::ApiGateway::DomainName
-#    Properties:
-#      DomainName: !Sub 'api.${DomainName}'
-#      RegionalCertificateArn: !Ref RegionalCertificateArn
-#      EndpointConfiguration:
-#        Types:
-#          - REGIONAL
-#
-#  ApiBasePath:
-#    Type: AWS::ApiGateway::BasePathMapping
-#    Properties:
-#      DomainName: !Ref ApiCustomDomain
-#      RestApiId: !Ref ApiGateway
-#      Stage: Prod
-#    DependsOn:
-#      - ApiGateway
-#      - ApiGatewayProdStage
-#      - ApiCustomDomain
-#
-#  RegionalRoute53Record:
-#    Type: AWS::Route53::RecordSet
-#    Properties:
-#      Name: !Sub 'api.${DomainName}'
-#      SetIdentifier: !Sub 'patch-api-${AWS::Region}'
-#      AliasTarget:
-#        DNSName: !GetAtt ApiCustomDomain.RegionalDomainName
-#        HostedZoneId: !GetAtt ApiCustomDomain.RegionalHostedZoneId
-#      HostedZoneId: !Ref HostedZoneId
-#      Region: !Ref AWS::Region
-#      Type: A
+  ApiCustomDomain:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      DomainName: !Sub 'api.${DomainName}'
+      RegionalCertificateArn: !Ref RegionalCertificateArn
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+
+  ApiBasePath:
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      DomainName: !Ref ApiCustomDomain
+      RestApiId: !Ref ApiGateway
+      Stage: Prod
+    DependsOn:
+      - ApiGateway
+      - ApiGatewayProdStage
+      - ApiCustomDomain
+
+  RegionalRoute53Record:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: !Sub 'api.${DomainName}'
+      SetIdentifier: !Sub 'patch-api-${AWS::Region}'
+      AliasTarget:
+        DNSName: !GetAtt ApiCustomDomain.RegionalDomainName
+        HostedZoneId: !GetAtt ApiCustomDomain.RegionalHostedZoneId
+      HostedZoneId: !Ref HostedZoneId
+      Region: !Ref AWS::Region
+      Type: A
 
 # Lambda
 
