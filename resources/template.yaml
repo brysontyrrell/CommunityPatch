@@ -36,6 +36,7 @@ Resources:
       CodeUri: ./src/title_sync_service
       MemorySize: 512
       Timeout: 10
+      Tracing: Active
       Environment:
         Variables:
           NAMESPACE: !Ref Namespace
@@ -50,7 +51,7 @@ Resources:
             Events:
               - s3:ObjectCreated:Put
               - s3:ObjectCreated:Post
-              - s3:ObjectRemoved:*
+              - s3:ObjectRemoved:Delete
             Filter:
               S3Key:
                 Rules:

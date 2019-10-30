@@ -44,7 +44,7 @@ def process_record(record):
                 print(f"Deleting {region}: {source_key}")
                 target_bucket.delete_objects(Delete={"Objects": [{"Key": source_key}]})
             else:
-                print(f"Deletion skipped: koes not exist {region}: {source_key}")
+                print(f"Deletion skipped: key does not exist {region}: {source_key}")
         else:
             print(f"No action taken")
 
