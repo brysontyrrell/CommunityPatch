@@ -13,45 +13,129 @@ Parameters:
   RegionalCertificateArn:
     Type: AWS::SSM::Parameter::Value<String>
 
+  TitlesBucketName:
+    Type: AWS::SSM::Parameter::Value<String>
+
+  TitlesTableName:
+    Type: AWS::SSM::Parameter::Value<String>
+
+# SAM Globals
+
+Globals:
+  Function:
+    Runtime: python3.7
+    Handler: index.lambda_handler
+    Environment:
+      Variables:
+        TITLES_BUCKET: !Ref TitlesBucketName
+        TITLES_TABLE: !Ref TitlesTableName
+
 Resources:
+
+# API Gateway
 
   ApiGateway:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: Prod
+      StageName: prod
       EndpointConfiguration: REGIONAL
+      Domain:
+        DomainName: !Sub 'api.${DomainName}'
+        CertificateArn: !Ref RegionalCertificateArn
 
-  ApiCustomDomain:
-    Type: AWS::ApiGateway::DomainName
+#  ApiCustomDomain:
+#    Type: AWS::ApiGateway::DomainName
+#    Properties:
+#      DomainName: !Sub 'api.${DomainName}'
+#      RegionalCertificateArn: !Ref RegionalCertificateArn
+#      EndpointConfiguration:
+#        Types:
+#          - REGIONAL
+#
+#  ApiBasePath:
+#    Type: AWS::ApiGateway::BasePathMapping
+#    Properties:
+#      DomainName: !Ref ApiCustomDomain
+#      RestApiId: !Ref ApiGateway
+#      Stage: Prod
+#    DependsOn:
+#      - ApiGateway
+#      - ApiGatewayProdStage
+#      - ApiCustomDomain
+#
+#  RegionalRoute53Record:
+#    Type: AWS::Route53::RecordSet
+#    Properties:
+#      Name: !Sub 'api.${DomainName}'
+#      SetIdentifier: !Sub 'patch-api-${AWS::Region}'
+#      AliasTarget:
+#        DNSName: !GetAtt ApiCustomDomain.RegionalDomainName
+#        HostedZoneId: !GetAtt ApiCustomDomain.RegionalHostedZoneId
+#      HostedZoneId: !Ref HostedZoneId
+#      Region: !Ref AWS::Region
+#      Type: A
+
+# Lambda
+
+  PostTitle:
+    Type: AWS::Serverless::Function
     Properties:
-      DomainName: !Sub 'api.${DomainName}'
-      RegionalCertificateArn: !Ref RegionalCertificateArn
-      EndpointConfiguration:
-        Types:
-          - REGIONAL
+      CodeUri: ./src/functions/titles/api_titles_create
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TitlesTableName
+        - S3CrudPolicy:
+            BucketName: !Ref TitlesBucketName
+      Events:
+        CreateTitle:
+          Type: Api
+          Properties:
+            Path: /v1/titles
+            Method: post
+            RestApiId:
+                Ref: ApiGateway
 
-  ApiBasePath:
-    Type: AWS::ApiGateway::BasePathMapping
+  PostDeleteVersion:
+    Type: AWS::Serverless::Function
     Properties:
-      DomainName: !Ref ApiCustomDomain
-      RestApiId: !Ref ApiGateway
-      Stage: Prod
-    DependsOn:
-      - ApiGateway
-      - ApiGatewayProdStage
-      - ApiCustomDomain
+      CodeUri: ./src/functions/titles/api_versions
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TitlesTableName
+        - S3CrudPolicy:
+            BucketName: !Ref TitlesBucketName
+      Events:
+        AddVersion:
+          Type: Api
+          Properties:
+            Path: /api/v1/titles/{title}/versions
+            Method: post
+            RestApiId:
+              Ref: ApiGateway
+        DeleteVersion:
+          Type: Api
+          Properties:
+            Path: /api/v1/titles/{title}/versions/{version}
+            Method: delete
+            RestApiId:
+              Ref: ApiGateway
 
-  RegionalRoute53Record:
-    Type: AWS::Route53::RecordSet
+  DeleteTitle:
+    Type: AWS::Serverless::Function
     Properties:
-      Name: !Sub 'api.${DomainName}'
-      SetIdentifier: !Sub 'patch-api-${AWS::Region}'
-      AliasTarget:
-        DNSName: !GetAtt ApiCustomDomain.RegionalDomainName
-        HostedZoneId: !GetAtt ApiCustomDomain.RegionalHostedZoneId
-      HostedZoneId: !Ref HostedZoneId
-      Region: !Ref AWS::Region
-      Type: A
-
-
+      CodeUri: ./src/functions/titles/api_titles_delete
+      Policies:
+        Statement:
+          - DynamoDBCrudPolicy:
+              TableName: !Ref TitlesTableName
+          - S3CrudPolicy:
+              BucketName: !Ref TitlesBucketName
+      Events:
+        DeleteTitle:
+          Type: Api
+          Properties:
+            Path: /api/v1/titles/{title}
+            Method: delete
+            RestApiId:
+              Ref: ApiGateway
 

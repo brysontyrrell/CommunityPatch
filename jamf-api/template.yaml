@@ -37,7 +37,7 @@ Resources:
   ApiGateway:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: Prod
+      StageName: prod
       EndpointConfiguration: REGIONAL
 
   ApiCustomDomain:
