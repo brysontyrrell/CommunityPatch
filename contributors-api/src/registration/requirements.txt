@@ -1,0 +1,4 @@
+aws-xray-sdk==2.4.2
+cryptography==2.7
+jsonschema==3.0.2
+pyjwt==1.7.1

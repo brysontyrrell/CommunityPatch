@@ -13,9 +13,19 @@ Parameters:
   HostedZoneId:
     Type: String
 
-# Need to figure out a solution for this region specific value. Manual for now.
-#  CertificateId:
-#    Type: String
+Conditions:
+  IsUSEast2: !Equals [ !Ref AWS::Region, 'us-east-2' ]
+
+# SAM Globals
+
+Globals:
+  Function:
+    Runtime: python3.7
+    Handler: index.lambda_handler
+    Tracing: PassThrough
+    Environment:
+      Variables:
+        NAMESPACE: !Ref Namespace
 
 Resources:
 
@@ -26,20 +36,20 @@ Resources:
     Properties:
       BucketName: !Sub communitypatch-${Namespace}-${AWS::Region}-titles
 
+# SNS Topics
+
+  EmailServiceTopic:
+    Type: AWS::SNS::Topic
+
 # Lambda
 
   TitleSyncService:
     Type: AWS::Serverless::Function
     Properties:
-      Runtime: python3.7
-      Handler: index.lambda_handler
       CodeUri: ./src/title_sync_service
       MemorySize: 512
       Timeout: 10
       Tracing: Active
-      Environment:
-        Variables:
-          NAMESPACE: !Ref Namespace
       Policies:
         - S3CrudPolicy:
             BucketName: !Sub communitypatch-${Namespace}-*-titles
@@ -57,6 +67,25 @@ Resources:
                 Rules:
                   - Name: prefix
                     Value: titles
+
+  EmailService:
+    Type: AWS::Serverless::Function
+    Condition: IsUSEast2
+    Properties:
+      CodeUri: ./src/email_service
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action: ses:SendEmail
+            Resource: '*'
+            Condition:
+              StringEquals:
+                ses:FromAddress: !Sub 'noreply@${DomainName}'
+      Events:
+        SnsTopic:
+          Type: SNS
+          Properties:
+            Topic: !Ref EmailServiceTopic
 
 # DynamoDB Tables
 
@@ -137,19 +166,19 @@ Resources:
       Type: String
       Value: !Ref HostedZoneId
 
-#  PublishCertificateId:
-#    Type: AWS::SSM::Parameter
-#    Properties:
-#      Name: !Sub /communitypatch/${Namespace}/certificate_id
-#      Type: String
-#      Value: !Ref CertificateId
-
   PublishTitlesBucketName:
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub /communitypatch/${Namespace}/titles_bucket_name
       Type: String
       Value: !Ref TitlesBucket
+
+  PublishEmailServiceTopicArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /communitypatch/${Namespace}/email_service_topic_arn
+      Type: String
+      Value: !Ref EmailServiceTopic
 
   PublishContributorsTableName:
     Type: AWS::SSM::Parameter
