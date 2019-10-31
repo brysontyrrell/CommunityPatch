@@ -38,7 +38,7 @@ Resources:
   ApiGateway:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: prod
+      StageName: Prod
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
 #      Domain:
