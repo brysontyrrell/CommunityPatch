@@ -112,7 +112,7 @@ Resources:
   RevokedTokensTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub CommunityPatch-${Namespace}-Contributors-v1
+      TableName: !Sub CommunityPatch-${Namespace}-RevokedTokens-v1
       BillingMode: PROVISIONED
       ProvisionedThroughput:
         ReadCapacityUnits: 4
