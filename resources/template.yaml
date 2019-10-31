@@ -61,36 +61,65 @@ Resources:
 # DynamoDB Tables
 
   ContributorsTable:
-    Type: AWS::Serverless::SimpleTable
+    Type: AWS::DynamoDB::Table
     Properties:
-      PrimaryKey:
-        Name: id
-        Type: String
+      TableName: !Sub CommunityPatch-${Namespace}-Contributors-v1
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 4
+        WriteCapacityUnits: 4
+
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
 
   RevokedTokensTable:
-    Type: AWS::Serverless::SimpleTable
+    Type: AWS::DynamoDB::Table
     Properties:
-      PrimaryKey:
-        Name: token_id
-        Type: String
+      TableName: !Sub CommunityPatch-${Namespace}-Contributors-v1
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 4
+        WriteCapacityUnits: 4
+
+      AttributeDefinitions:
+        - AttributeName: token_id
+          AttributeType: S
+
+      KeySchema:
+        - AttributeName: token_id
+          KeyType: HASH
+
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
 
   TitlesTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub CommunityPatch-${Namespace}-TitlesTable-v1
+      TableName: !Sub CommunityPatch-${Namespace}-Titles-v1
       BillingMode: PAY_PER_REQUEST
 
       AttributeDefinitions:
-      - AttributeName: contributor_id
-        AttributeType: S
-      - AttributeName: title_id
-        AttributeType: S
+        - AttributeName: contributor_id
+          AttributeType: S
+        - AttributeName: title_id
+          AttributeType: S
 
       KeySchema:
-      - AttributeName: contributor_id
-        KeyType: HASH
-      - AttributeName: title_id
-        KeyType: RANGE
+        - AttributeName: contributor_id
+          KeyType: HASH
+        - AttributeName: title_id
+          KeyType: RANGE
+
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
 
 # SSM Parameter Store
 
