@@ -46,6 +46,22 @@ Resources:
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
 
+      Models:
+        Registration:
+          type: object
+          properties:
+            email:
+              id: /properties/email
+              type: string
+              pattern: '^[^@\s]+@[^@\s]+\.[^@\s]+$'
+            name:
+              id: /properities/name
+              type: string
+              patter: '^\S+$'
+          required:
+            - email
+            - name
+
   ApiCustomDomain:
     Type: AWS::ApiGateway::DomainName
     Properties:
@@ -100,6 +116,9 @@ Resources:
           Properties:
             Path: /v1/register
             Method: post
+            RequestModel:
+              Model: Registration
+              Required: true
             RestApiId:
                 Ref: ApiGateway
 
