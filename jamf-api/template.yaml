@@ -25,6 +25,7 @@ Globals:
   Function:
     Runtime: python3.7
     Handler: index.lambda_handler
+    Tracing: PassThrough
     Environment:
       Variables:
         TITLES_BUCKET: !Ref TitlesBucketName
@@ -39,6 +40,7 @@ Resources:
     Properties:
       StageName: prod
       EndpointConfiguration: REGIONAL
+      TracingEnabled: true
 
   ApiCustomDomain:
     Type: AWS::ApiGateway::DomainName

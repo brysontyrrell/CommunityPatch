@@ -25,6 +25,7 @@ Globals:
   Function:
     Runtime: python3.7
     Handler: index.lambda_handler
+    Tracing: PassThrough
     Environment:
       Variables:
         TITLES_BUCKET: !Ref TitlesBucketName
@@ -39,6 +40,7 @@ Resources:
     Properties:
       StageName: prod
       EndpointConfiguration: REGIONAL
+      TracingEnabled: true
 #      Domain:
 #        DomainName: !Sub 'api.${DomainName}'
 #        CertificateArn: !Ref RegionalCertificateArn
@@ -80,7 +82,7 @@ Resources:
   PostTitle:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/functions/titles/api_titles_create
+      CodeUri: ./src/post_title
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TitlesTableName
@@ -98,7 +100,7 @@ Resources:
   PostDeleteVersion:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/functions/titles/api_versions
+      CodeUri: ./src/post_delete_version
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TitlesTableName
@@ -123,7 +125,7 @@ Resources:
   DeleteTitle:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/functions/titles/api_titles_delete
+      CodeUri: ./src/delete_title
       Policies:
         Statement:
           - DynamoDBCrudPolicy:
