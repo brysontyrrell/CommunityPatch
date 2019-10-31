@@ -1,6 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
-Description: Jamf Pro endpoints for Community Patch
 
 Parameters:
 
@@ -50,7 +49,7 @@ Resources:
   ApiCustomDomain:
     Type: AWS::ApiGateway::DomainName
     Properties:
-      DomainName: !Sub 'jamf.${DomainName}'
+      DomainName: !Sub 'contributors.${DomainName}'
       RegionalCertificateArn: !Ref RegionalCertificateArn
       EndpointConfiguration:
         Types:
@@ -70,8 +69,8 @@ Resources:
   RegionalRoute53Record:
     Type: AWS::Route53::RecordSet
     Properties:
-      Name: !Sub 'jamf.${DomainName}'
-      SetIdentifier: !Sub 'jamf-api-${AWS::Region}'
+      Name: !Sub 'contributors.${DomainName}'
+      SetIdentifier: !Sub 'contributors-api-${AWS::Region}'
       AliasTarget:
         DNSName: !GetAtt ApiCustomDomain.RegionalDomainName
         HostedZoneId: !GetAtt ApiCustomDomain.RegionalHostedZoneId
