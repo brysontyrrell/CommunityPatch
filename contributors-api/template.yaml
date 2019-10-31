@@ -16,6 +16,9 @@ Parameters:
   ContributorsTableName:
     Type: AWS::SSM::Parameter::Value<String>
 
+  EmailServiceTopicArn:
+    Type: AWS::SSM::Parameter::Value<String>
+
 # SAM Globals
 
 Globals:
@@ -27,6 +30,7 @@ Globals:
       Variables:
         CONTRIBUTORS_TABLE: !Ref ContributorsTableName
         DOMAIN_NAME: !Ref DomainName
+        EMAIL_SERVICE_TOPIC: !Ref EmailServiceTopicArn
 
 Resources:
 
@@ -73,41 +77,65 @@ Resources:
 
 # Lambda
 
-  GetSoftware:
+  Registration:
     Type: AWS::Serverless::Function
+    Description: Creates and rotates tokens.
     Properties:
-      CodeUri: ./src/get_software
+      CodeUri: ./src/registration
       Policies:
-        - DynamoDBReadPolicy:
-            TableName: !Ref TitlesTableName
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ContributorsTableName
+        - SNSPublishMessagePolicy:
+            TopicName: !Ref EmailServiceTopicArn
+        - Statement:
+            - Effect: Allow
+              Action: ssm:GetParameter*
+              Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ParameterStorePath}*'
       Events:
-        GetAllSoftware:
+        ApiContributorRegistration:
           Type: Api
           Properties:
-            Path: /v1/{contributor}/software
-            Method: get
+            Path: /v1/register
+            Method: post
             RestApiId:
                 Ref: ApiGateway
-        GetSelectSoftware:
+
+  Verification:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/verification
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ContributorsTableName
+        - SNSPublishMessagePolicy:
+            TopicName: !Ref EmailServiceTopicArn
+        - Statement:
+            - Effect: Allow
+              Action: ssm:GetParameter*
+              Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ParameterStorePath}*'
+      Events:
+        ApiContributorRegistration:
           Type: Api
           Properties:
-            Path: /v1/{contributor}/software/{titles}
+            Path: /v1/verify
             Method: get
             RestApiId:
                 Ref: ApiGateway
 
-  GetPatch:
+  ApiContributorsGet:
     Type: AWS::Serverless::Function
+    Description: List contributors on CommunityPatch.
     Properties:
-      CodeUri: ./src/get_patch
+      CodeUri: ./src/get_contributors
       Policies:
-        - S3ReadPolicy:
-            BucketName: !Ref TitlesBucketName
+        - DynamoDBReadPolicy:
+            TableName: !Ref ContributorsTableName
       Events:
-        GetPatch:
+        ApiContributorRegistration:
           Type: Api
           Properties:
-            Path: /v1/{contributor}/patch/{title}
+            Path: /v1/contributors
             Method: get
             RestApiId:
-                Ref: ApiGateway
+              Ref: ApiGateway
+
