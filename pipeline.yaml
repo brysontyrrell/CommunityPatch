@@ -14,6 +14,10 @@ Parameters:
     Type: String
     Default: master
 
+  Namespace:
+    Type: String
+    Description: Segments CloudFormation stack names and Parameter Store paths
+
   GitHubToken:
     Type: String
     Description: Personal access token with 'write:repo_hook' permission.
@@ -48,16 +52,11 @@ Metadata:
       - Label:
           default: CommunityPatch Setup
         Parameters:
+          - Namespace
           - DomainName
           - HostedZoneId
-          - CertificateId
 
 Resources:
-
-# S3
-
-  ArtifactBucket:
-    Type: AWS::S3::Bucket
 
 # IAM
 
@@ -82,7 +81,7 @@ Resources:
                 Action:
                   - s3:GetObject*
                   - s3:PutObject*
-                Resource: !Sub 'arn:aws:s3:::${ArtifactBucket}/*'
+                Resource: !Sub 'arn:aws:s3:::${Namespace}-communitypatch-*-artifacts/*'
               - Effect: Allow
                 Action:
                   - logs:CreateLogGroup
@@ -118,7 +117,7 @@ Resources:
                 Action:
                   - s3:GetObject*
                   - s3:PutObject*
-                Resource: !Sub 'arn:aws:s3:::${ArtifactBucket}/*'
+                Resource: !Sub 'arn:aws:s3:::${Namespace}-communitypatch-*-artifacts/*'
 
   CloudFormationRole:
     Type: AWS::IAM::Role
@@ -152,8 +151,11 @@ Resources:
         Type: LINUX_CONTAINER
         EnvironmentVariables:
           - Type: PLAINTEXT
-            Name: ARTIFACT_BUCKET
-            Value: !Ref ArtifactBucket
+            Name: NAMESPACE
+            Value: !Ref Namespace
+          - Type: PLAINTEXT
+            Name: TARGET_REGIONS
+            Value: 'us-east-2 eu-central-1 ap-southeast-2'
       LogsConfig:
         CloudWatchLogs:
           Status: ENABLED
@@ -168,12 +170,26 @@ Resources:
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
+      RoleArn: !GetAtt CodePipelineRole.Arn
+
       ArtifactStores:
         - ArtifactStore:
             Type: S3
-            Location: !Ref ArtifactBucket
-          Region: !Ref AWS::Region
-      RoleArn: !GetAtt CodePipelineRole.Arn
+            Location: !Sub '${Namespace}-communitypatch-us-east-1-artifacts'
+          Region: us-east-1
+        - ArtifactStore:
+            Type: S3
+            Location: !Sub '${Namespace}-communitypatch-us-east-2-artifacts'
+          Region: us-east-2
+        - ArtifactStore:
+            Type: S3
+            Location: !Sub '${Namespace}-communitypatch-eu-central-1-artifacts'
+          Region: eu-central-1
+        - ArtifactStore:
+            Type: S3
+            Location: !Sub '${Namespace}-communitypatch-ap-southeast-2-artifacts'
+          Region: ap-southeast-2
+
       Stages:
         - Name: Source
           Actions:
@@ -193,9 +209,10 @@ Resources:
                 - Name: SourceArtifact
               Region: !Ref AWS::Region
               RunOrder: 1
+
         - Name: Build
           Actions:
-            - Name: Build
+            - Name: Resources-Build
               InputArtifacts:
                 - Name: SourceArtifact
               ActionTypeId:
@@ -204,16 +221,91 @@ Resources:
                 Provider: CodeBuild
                 Version: 1
               OutputArtifacts:
-                - Name: BuildArtifact
+                - Name: ResourcesBuildArtifact
               Configuration:
                 ProjectName: !Ref BuildProject
+                EnvironmentVariables: >
+                  [
+                    {
+                      "name": "SOURCE_DIR",
+                      "type": "PLAINTEXT",
+                      "value": "resources"
+                    }
+                  ]
               RunOrder: 1
-        - Name: Deploy
-          Actions:
-            - Name: US.Deployment
-              Region: us-east-1
+
+            - Name: Contributors-API-Build
               InputArtifacts:
-                - Name: BuildArtifact
+                  - Name: SourceArtifact
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              OutputArtifacts:
+                - Name: ContributorsApiBuildArtifact
+              Configuration:
+                ProjectName: !Ref BuildProject
+                EnvironmentVariables: >
+                  [
+                    {
+                      "name": "SOURCE_DIR",
+                      "type": "PLAINTEXT",
+                      "value": "contributors-api"
+                    }
+                  ]
+              RunOrder: 1
+
+            - Name: Patch-API-Build
+              InputArtifacts:
+                - Name: SourceArtifact
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              OutputArtifacts:
+                - Name: PatchApiBuildArtifact
+              Configuration:
+                ProjectName: !Ref BuildProject
+                EnvironmentVariables: >
+                  [
+                    {
+                      "name": "SOURCE_DIR",
+                      "type": "PLAINTEXT",
+                      "value": "patch-api"
+                    }
+                  ]
+              RunOrder: 1
+
+            - Name: Jamf-API-Build
+              InputArtifacts:
+                - Name: SourceArtifact
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              OutputArtifacts:
+                - Name: JamfApiBuildArtifact
+              Configuration:
+                ProjectName: !Ref BuildProject
+                EnvironmentVariables: >
+                  [
+                    {
+                      "name": "SOURCE_DIR",
+                      "type": "PLAINTEXT",
+                      "value": "jamf-api"
+                    }
+                  ]
+              RunOrder: 1
+
+        - Name: Deploy-Resources
+          Actions:
+            - Name: US2-Resources
+              Region: us-east-2
+              InputArtifacts:
+                - Name: ResourcesBuildArtifact
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -224,15 +316,303 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
-                StackName: communitypatch
-                TemplatePath: 'BuildArtifact::packaged.yaml'
+                StackName: !Sub ${Namespace}-communitypatch-resources
+                TemplatePath: 'ResourcesBuildArtifact::packaged-resources-us-east-2.yaml'
                 ParameterOverrides: !Sub |
                   {
+                    "Namespace": "${Namespace}",
                     "DomainName": "${DomainName}",
-                    "HostedZoneId": "${HostedZoneId}",
-                    "CertificateId": "${CertificateId}"
+                    "HostedZoneId": "${HostedZoneId}"
                   }
               RunOrder: 1
+
+            - Name: EU-Resources
+              Region: eu-central-1
+              InputArtifacts:
+                - Name: ResourcesBuildArtifact
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              RoleArn: !GetAtt CloudFormationRole.Arn
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt CloudFormationRole.Arn
+                StackName: !Sub ${Namespace}-communitypatch-resources
+                TemplatePath: 'ResourcesBuildArtifact::packaged-resources-eu-central-1.yaml'
+                ParameterOverrides: !Sub |
+                  {
+                    "Namespace": "${Namespace}",
+                    "DomainName": "${DomainName}",
+                    "HostedZoneId": "${HostedZoneId}"
+                  }
+              RunOrder: 1
+
+            - Name: AUS-Resources
+              Region: ap-southeast-2
+              InputArtifacts:
+                - Name: ResourcesBuildArtifact
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              RoleArn: !GetAtt CloudFormationRole.Arn
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt CloudFormationRole.Arn
+                StackName: !Sub ${Namespace}-communitypatch-resources
+                TemplatePath: 'ResourcesBuildArtifact::packaged-resources-ap-southeast-2.yaml'
+                ParameterOverrides: !Sub |
+                  {
+                    "Namespace": "${Namespace}",
+                    "DomainName": "${DomainName}",
+                    "HostedZoneId": "${HostedZoneId}"
+                  }
+              RunOrder: 1
+
+        - Name: Deploy-API-Stacks
+          Actions:
+            - Name: US2-Contributors-API
+              Region: us-east-2
+              InputArtifacts:
+                - Name: ContributorsApiBuildArtifact
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              RoleArn: !GetAtt CloudFormationRole.Arn
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt CloudFormationRole.Arn
+                StackName: !Sub ${Namespace}-communitypatch-contributors-api
+                TemplatePath: 'ContributorsApiBuildArtifact::packaged-contributors-api-us-east-2.yaml'
+                ParameterOverrides: !Sub |
+                  {
+                    "Namespace": "${Namespace}",
+                    "DomainName": "/communitypatch/${Namespace}/domain_name",
+                    "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
+                    "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
+                    "ContributorsTableName": "/communitypatch/${Namespace}/contributors_table_name",
+                    "EmailServiceTopicArn": "/communitypatch/${Namespace}/email_service_topic_arn"
+                  }
+              RunOrder: 1
+
+            - Name: EU-Contributors-API
+              Region: eu-central-1
+              InputArtifacts:
+                - Name: ContributorsApiBuildArtifact
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              RoleArn: !GetAtt CloudFormationRole.Arn
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt CloudFormationRole.Arn
+                StackName: !Sub ${Namespace}-communitypatch-contributors-api
+                TemplatePath: 'ContributorsApiBuildArtifact::packaged-contributors-api-eu-central-1.yaml'
+                ParameterOverrides: !Sub |
+                  {
+                    "Namespace": "${Namespace}",
+                    "DomainName": "/communitypatch/${Namespace}/domain_name",
+                    "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
+                    "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
+                    "ContributorsTableName": "/communitypatch/${Namespace}/contributors_table_name",
+                    "EmailServiceTopicArn": "/communitypatch/${Namespace}/email_service_topic_arn"
+                  }
+              RunOrder: 1
+
+            - Name: AUS-Contributors-API
+              Region: ap-southeast-2
+              InputArtifacts:
+                - Name: ContributorsApiBuildArtifact
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              RoleArn: !GetAtt CloudFormationRole.Arn
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt CloudFormationRole.Arn
+                StackName: !Sub ${Namespace}-communitypatch-contributors-api
+                TemplatePath: 'ContributorsApiBuildArtifact::packaged-contributors-api-ap-southeast-2.yaml'
+                ParameterOverrides: !Sub |
+                  {
+                    "Namespace": "${Namespace}",
+                    "DomainName": "/communitypatch/${Namespace}/domain_name",
+                    "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
+                    "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
+                    "ContributorsTableName": "/communitypatch/${Namespace}/contributors_table_name",
+                    "EmailServiceTopicArn": "/communitypatch/${Namespace}/email_service_topic_arn"
+                  }
+              RunOrder: 1
+
+
+            - Name: US2-Patch-API
+              Region: us-east-2
+              InputArtifacts:
+                - Name: PatchApiBuildArtifact
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              RoleArn: !GetAtt CloudFormationRole.Arn
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt CloudFormationRole.Arn
+                StackName: !Sub ${Namespace}-communitypatch-patch-api
+                TemplatePath: 'PatchApiBuildArtifact::packaged-patch-api-us-east-2.yaml'
+                ParameterOverrides: !Sub |
+                  {
+                    "DomainName": "/communitypatch/${Namespace}/domain_name",
+                    "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
+                    "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
+                    "TitlesBucketName": "/communitypatch/${Namespace}/titles_bucket_name",
+                    "TitlesTableName": "/communitypatch/${Namespace}/titles_table_name"
+                  }
+              RunOrder: 2
+
+            - Name: EU-Patch-API
+              Region: eu-central-1
+              InputArtifacts:
+                - Name: PatchApiBuildArtifact
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              RoleArn: !GetAtt CloudFormationRole.Arn
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt CloudFormationRole.Arn
+                StackName: !Sub ${Namespace}-communitypatch-patch-api
+                TemplatePath: 'PatchApiBuildArtifact::packaged-patch-api-eu-central-1.yaml'
+                ParameterOverrides: !Sub |
+                  {
+                    "DomainName": "/communitypatch/${Namespace}/domain_name",
+                    "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
+                    "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
+                    "TitlesBucketName": "/communitypatch/${Namespace}/titles_bucket_name",
+                    "TitlesTableName": "/communitypatch/${Namespace}/titles_table_name"
+                  }
+              RunOrder: 2
+
+            - Name: AUS-Patch-API
+              Region: ap-southeast-2
+              InputArtifacts:
+                - Name: PatchApiBuildArtifact
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              RoleArn: !GetAtt CloudFormationRole.Arn
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt CloudFormationRole.Arn
+                StackName: !Sub ${Namespace}-communitypatch-patch-api
+                TemplatePath: 'PatchApiBuildArtifact::packaged-patch-api-ap-southeast-2.yaml'
+                ParameterOverrides: !Sub |
+                  {
+                    "DomainName": "/communitypatch/${Namespace}/domain_name",
+                    "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
+                    "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
+                    "TitlesBucketName": "/communitypatch/${Namespace}/titles_bucket_name",
+                    "TitlesTableName": "/communitypatch/${Namespace}/titles_table_name"
+                  }
+              RunOrder: 2
+
+            - Name: US2-Jamf-API
+              Region: us-east-2
+              InputArtifacts:
+                - Name: JamfApiBuildArtifact
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              RoleArn: !GetAtt CloudFormationRole.Arn
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt CloudFormationRole.Arn
+                StackName: !Sub ${Namespace}-communitypatch-jamf-api
+                TemplatePath: 'JamfApiBuildArtifact::packaged-jamf-api-us-east-2.yaml'
+                ParameterOverrides: !Sub |
+                  {
+                    "DomainName": "/communitypatch/${Namespace}/domain_name",
+                    "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
+                    "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
+                    "TitlesBucketName": "/communitypatch/${Namespace}/titles_bucket_name",
+                    "TitlesTableName": "/communitypatch/${Namespace}/titles_table_name"
+                  }
+              RunOrder: 3
+
+            - Name: EU-Jamf-API
+              Region: eu-central-1
+              InputArtifacts:
+                - Name: JamfApiBuildArtifact
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              RoleArn: !GetAtt CloudFormationRole.Arn
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt CloudFormationRole.Arn
+                StackName: !Sub ${Namespace}-communitypatch-jamf-api
+                TemplatePath: 'JamfApiBuildArtifact::packaged-jamf-api-eu-central-1.yaml'
+                ParameterOverrides: !Sub |
+                  {
+                    "DomainName": "/communitypatch/${Namespace}/domain_name",
+                    "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
+                    "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
+                    "TitlesBucketName": "/communitypatch/${Namespace}/titles_bucket_name",
+                    "TitlesTableName": "/communitypatch/${Namespace}/titles_table_name"
+                  }
+              RunOrder: 3
+
+            - Name: AUS-Jamf-API
+              Region: ap-southeast-2
+              InputArtifacts:
+                - Name: JamfApiBuildArtifact
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              RoleArn: !GetAtt CloudFormationRole.Arn
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt CloudFormationRole.Arn
+                StackName: !Sub ${Namespace}-communitypatch-jamf-api
+                TemplatePath: 'JamfApiBuildArtifact::packaged-jamf-api-ap-southeast-2.yaml'
+                ParameterOverrides: !Sub |
+                  {
+                    "DomainName": "/communitypatch/${Namespace}/domain_name",
+                    "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
+                    "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
+                    "TitlesBucketName": "/communitypatch/${Namespace}/titles_bucket_name",
+                    "TitlesTableName": "/communitypatch/${Namespace}/titles_table_name"
+                  }
+              RunOrder: 3
 
   PipelineWebHook:
     Type: AWS::CodePipeline::Webhook
