@@ -81,9 +81,8 @@ Resources:
     Properties:
       CodeUri: ./src/get_software
       Policies:
-        Statement:
-          - DynamoDBReadPolicy:
-              TableName: !Ref TitlesTableName
+        - DynamoDBReadPolicy:
+            TableName: !Ref TitlesTableName
       Events:
         GetAllSoftware:
           Type: Api
@@ -105,9 +104,8 @@ Resources:
     Properties:
       CodeUri: ./src/get_patch
       Policies:
-        Statement:
-          - S3ReadPolicy:
-              BucketName: !Ref TitlesBucketName
+        - S3ReadPolicy:
+            BucketName: !Ref TitlesBucketName
       Events:
         GetPatch:
           Type: Api
