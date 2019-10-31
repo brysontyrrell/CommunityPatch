@@ -4,6 +4,9 @@ Description: Jamf Pro endpoints for Community Patch
 
 Parameters:
 
+  Namespace:
+    Type: String
+
   DomainName:
     Type: AWS::SSM::Parameter::Value<String>
 
@@ -31,6 +34,7 @@ Globals:
         CONTRIBUTORS_TABLE: !Ref ContributorsTableName
         DOMAIN_NAME: !Ref DomainName
         EMAIL_SERVICE_TOPIC: !Ref EmailServiceTopicArn
+        NAMESPACE: !Ref Namespace
 
 Resources:
 
@@ -90,7 +94,7 @@ Resources:
         - Statement:
             - Effect: Allow
               Action: ssm:GetParameter*
-              Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ParameterStorePath}*'
+              Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/communitypatch/${Namespace}/*'
       Events:
         ApiContributorRegistration:
           Type: Api
@@ -112,7 +116,7 @@ Resources:
         - Statement:
             - Effect: Allow
               Action: ssm:GetParameter*
-              Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ParameterStorePath}*'
+              Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/communitypatch/${Namespace}*'
       Events:
         ApiContributorRegistration:
           Type: Api
