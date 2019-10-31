@@ -42,7 +42,6 @@ Resources:
   ApiGateway:
     Type: AWS::Serverless::Api
     Properties:
-      OpenApiVersion: '2.0'
       StageName: Prod
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
@@ -119,7 +118,7 @@ Resources:
             Method: post
             RequestModel:
               Model: Registration
-              Required: true
+#              Required: true
             RestApiId:
                 Ref: ApiGateway
 
