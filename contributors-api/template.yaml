@@ -118,7 +118,7 @@ Resources:
             Method: post
             RequestModel:
               Model: Registration
-#              Required: true
+              Required: true
             RestApiId:
                 Ref: ApiGateway
 
