@@ -18,8 +18,6 @@ logger.setLevel(logging.INFO)
 patch(["boto3"])
 
 CONTRIBUTORS_TABLE = os.getenv("CONTRIBUTORS_TABLE")
-DOMAIN_NAME = os.getenv("DOMAIN_NAME")
-EMAIL_SNS_TOPIC = os.getenv("EMAIL_SNS_TOPIC")
 NAMESPACE = os.getenv("NAMESPACE")
 
 
@@ -29,17 +27,6 @@ def lambda_handler(event, context):
     id_ = hashlib.md5(body["name"].encode()).hexdigest()
     verification_code = uuid.uuid4().hex
 
-    verification_url = urlunparse(
-        (
-            "https",
-            DOMAIN_NAME,
-            "api/v1/contributors/verify",
-            None,
-            urlencode({"id": id_, "code": verification_code}),
-            None,
-        )
-    )
-
     try:
         write_new_contributor(id_, body["name"], body["email"], verification_code)
     except ClientError as error:
@@ -47,8 +34,6 @@ def lambda_handler(event, context):
             return response("Conflict: The provided name is already in use", 409)
         else:
             raise
-
-    send_email(body["email"], body["name"], verification_url)
 
     return response("Success", 201)
 
@@ -93,29 +78,6 @@ def get_fernet():
         Name=f"/communitypatch/{NAMESPACE}/database_key", WithDecryption=True
     )
     return Fernet(resp["Parameter"]["Value"])
-
-
-def send_email(recipient, name, url):
-    try:
-        email_sns_client().publish(
-            TopicArn=EMAIL_SNS_TOPIC,
-            Message=json.dumps(
-                {
-                    "recipient": recipient,
-                    "message_type": "verification",
-                    "message_data": {"display_name": name, "url": url},
-                }
-            ),
-            MessageStructure="string",
-        )
-    except ClientError as error:
-        logger.exception(f"Error sending SNS notification: {error}")
-        raise
-
-
-@lru_cache()
-def email_sns_client():
-    return boto3.client("sns", region_name="us-east-2")
 
 
 def response(message, status_code):

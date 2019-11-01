@@ -14,7 +14,7 @@ Parameters:
     Type: String
 
 Conditions:
-  IsUSEast2: !Equals [ !Ref AWS::Region, 'us-east-2' ]
+  UsEast2Only: !Equals [ !Ref AWS::Region, 'us-east-2' ]
 
 # SAM Globals
 
@@ -68,9 +68,30 @@ Resources:
                   - Name: prefix
                     Value: titles
 
+  ContributorStream:
+    Type: AWS::Serverless::Function
+    Condition: UsEast2Only
+    Properties:
+      CodeUri: ./src/contributor_stream
+      Policies:
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt EmailServiceTopic.TopicName
+      Environment:
+        Variables:
+          DOMAIN_NAME: !Ref DomainName
+          EMAIL_SERVICE_TOPIC: !Ref EmailServiceTopic
+      Events:
+        Contributors:
+          Type: DynamoDB
+          Properties:
+            Stream: !Ref ContributorsTable
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 10
+            MaximumBatchingWindowInSeconds: 60
+
   EmailService:
     Type: AWS::Serverless::Function
-    Condition: IsUSEast2
+    Condition: UsEast2Only
     Properties:
       CodeUri: ./src/email_service
       Policies:

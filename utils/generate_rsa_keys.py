@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import base64
 
 from cryptography.hazmat.backends import default_backend

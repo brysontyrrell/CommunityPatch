@@ -398,8 +398,7 @@ Resources:
                     "DomainName": "/communitypatch/${Namespace}/domain_name",
                     "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "ContributorsTableName": "/communitypatch/${Namespace}/contributors_table_name",
-                    "EmailServiceTopicArn": "/communitypatch/${Namespace}/email_service_topic_arn"
+                    "ContributorsTableName": "/communitypatch/${Namespace}/contributors_table_name"
                   }
               RunOrder: 1
 
@@ -425,8 +424,7 @@ Resources:
                     "DomainName": "/communitypatch/${Namespace}/domain_name",
                     "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "ContributorsTableName": "/communitypatch/${Namespace}/contributors_table_name",
-                    "EmailServiceTopicArn": "/communitypatch/${Namespace}/email_service_topic_arn"
+                    "ContributorsTableName": "/communitypatch/${Namespace}/contributors_table_name"
                   }
               RunOrder: 1
 
@@ -452,8 +450,7 @@ Resources:
                     "DomainName": "/communitypatch/${Namespace}/domain_name",
                     "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "ContributorsTableName": "/communitypatch/${Namespace}/contributors_table_name",
-                    "EmailServiceTopicArn": "/communitypatch/${Namespace}/email_service_topic_arn"
+                    "ContributorsTableName": "/communitypatch/${Namespace}/contributors_table_name"
                   }
               RunOrder: 1
 
