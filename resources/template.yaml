@@ -93,7 +93,7 @@ Resources:
             Stream: !GetAtt ContributorsTable.StreamArn
             StartingPosition: TRIM_HORIZON
             BatchSize: 10
-            MaximumBatchingWindowInSeconds: 60
+#            MaximumBatchingWindowInSeconds: 60
 
   EmailService:
     Type: AWS::Serverless::Function
