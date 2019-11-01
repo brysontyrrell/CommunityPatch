@@ -89,7 +89,7 @@ def table_resource(table):
 @lru_cache()
 def get_fernet():
     ssm_client = boto3_session().client("ssm")
-    resp = ssm_client.get_parameters(
+    resp = ssm_client.get_parameter(
         Name=f"/communitypatch/{NAMESPACE}/database_key", WithDecryption=True
     )
     return Fernet(resp["Parameter"]["Value"])
