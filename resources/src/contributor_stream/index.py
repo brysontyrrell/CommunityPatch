@@ -81,7 +81,7 @@ def parse_stream(data):
         elif v.get("BOOL") is not None:
             result[k] = bool(v["BOOL"])
         elif v.get("B"):
-            result["k"] = v["B"]
+            result[k] = v["B"]
     return result
 
 
