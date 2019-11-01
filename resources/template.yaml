@@ -73,9 +73,15 @@ Resources:
     Condition: UsEast2Only
     Properties:
       CodeUri: ./src/contributor_stream
+      Timeout: 10
+      Tracing: Active
       Policies:
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt EmailServiceTopic.TopicName
+        - Statement:
+            - Effect: Allow
+              Action: ssm:GetParameter*
+              Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/communitypatch/${Namespace}/*
       Environment:
         Variables:
           DOMAIN_NAME: !Ref DomainName
@@ -94,6 +100,7 @@ Resources:
     Condition: UsEast2Only
     Properties:
       CodeUri: ./src/email_service
+      Timeout: 10
       Policies:
         Statement:
           - Effect: Allow

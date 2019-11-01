@@ -1,12 +1,9 @@
 from decimal import Decimal
 from functools import lru_cache
-import hashlib
 import json
 import logging
 import os
-import time
 from urllib.parse import urlencode, urlunparse
-import uuid
 
 from aws_xray_sdk.core import patch
 import boto3
@@ -24,38 +21,51 @@ NAMESPACE = os.getenv("NAMESPACE")
 
 
 def lambda_handler(event, context):
-    print(event)
+    logger.info(event)
     fernet = get_fernet()
-    sns_client = email_sns_client()
 
-    # for record in event["Records"]:
-    #     verification_url = urlunparse(
-    #         (
-    #             "https",
-    #             DOMAIN_NAME,
-    #             "api/v1/contributors/verify",
-    #             None,
-    #             urlencode({"id": id_, "code": verification_code}),
-    #             None,
-    #         )
-    #     )
-    #
-    #     try:
-    #         email_sns_client().publish(
-    #             TopicArn=EMAIL_SNS_TOPIC,
-    #             Message=json.dumps(
-    #                 {
-    #                     "recipient": recipient,
-    #                     "message_type": "verification",
-    #                     "message_data": {"display_name": name, "url": url},
-    #                 }
-    #             ),
-    #             MessageStructure="string",
-    #         )
-    #     except ClientError as error:
-    #         logger.exception(f"Error sending SNS notification: {error}")
+    for record in event["Records"]:
+        data = dict()
+        data.update(record["dynamodb"]["Keys"])
+
+        verification_url = urlunparse(
+            (
+                "https",
+                DOMAIN_NAME,
+                "api/v1/contributors/verify",
+                None,
+                urlencode({"id": data["id"], "code": data["verification_code"]}),
+                None,
+            )
+        )
+
+        try:
+            email_sns_client().publish(
+                TopicArn=EMAIL_SNS_TOPIC,
+                Message=json.dumps(
+                    {
+                        "recipient": fernet.decrypt(data["email"]),
+                        "message_type": "verification",
+                        "message_data": {
+                            "display_name": data["display_name"],
+                            "url": verification_url,
+                        },
+                    }
+                ),
+                MessageStructure="string",
+            )
+        except ClientError as error:
+            logger.exception(f"Error sending SNS notification: {error}")
 
     return "ok"
+
+
+def parse_record(record):
+    data = dict()
+    data.update(record["dynamodb"]["Keys"])
+    if record["eventName"] == "INSERT":
+        data.update(record["dynamodb"]["NewImage"])
+    return data
 
 
 def parse_stream(data):
