@@ -22,7 +22,7 @@ Globals:
   Function:
     Runtime: python3.7
     Handler: index.lambda_handler
-    Tracing: PassThrough
+    Tracing: Active
     Environment:
       Variables:
         NAMESPACE: !Ref Namespace
@@ -49,7 +49,6 @@ Resources:
       CodeUri: ./src/title_sync_service
       MemorySize: 512
       Timeout: 10
-      Tracing: Active
       Policies:
         - S3CrudPolicy:
             BucketName: !Sub communitypatch-${Namespace}-*-titles
@@ -74,7 +73,6 @@ Resources:
     Properties:
       CodeUri: ./src/contributor_stream
       Timeout: 10
-      Tracing: Active
       Policies:
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt EmailServiceTopic.TopicName
@@ -93,7 +91,6 @@ Resources:
             Stream: !GetAtt ContributorsTable.StreamArn
             StartingPosition: TRIM_HORIZON
             BatchSize: 10
-#            MaximumBatchingWindowInSeconds: 60
 
   EmailService:
     Type: AWS::Serverless::Function
@@ -109,6 +106,9 @@ Resources:
             Condition:
               StringEquals:
                 ses:FromAddress: !Sub 'noreply@${DomainName}'
+      Environment:
+        Variables:
+          DOMAIN_NAME: !Ref DomainName
       Events:
         SnsTopic:
           Type: SNS

@@ -17,7 +17,7 @@ logger.setLevel(logging.INFO)
 patch(["boto3"])
 
 DOMAIN_NAME = os.getenv("DOMAIN_NAME")
-EMAIL_SNS_TOPIC = os.getenv("EMAIL_SNS_TOPIC")
+EMAIL_SERVICE_TOPIC = os.getenv("EMAIL_SERVICE_TOPIC")
 NAMESPACE = os.getenv("NAMESPACE")
 
 
@@ -45,7 +45,7 @@ def lambda_handler(event, context):
 
             try:
                 email_sns_client().publish(
-                    TopicArn=EMAIL_SNS_TOPIC,
+                    TopicArn=EMAIL_SERVICE_TOPIC,
                     Message=json.dumps(
                         {
                             "recipient": fernet.decrypt(data["email"]).decode(),
