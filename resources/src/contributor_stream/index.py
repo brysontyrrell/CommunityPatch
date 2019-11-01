@@ -1,3 +1,4 @@
+import base64
 from decimal import Decimal
 from functools import lru_cache
 import json
@@ -47,7 +48,7 @@ def lambda_handler(event, context):
                     TopicArn=EMAIL_SNS_TOPIC,
                     Message=json.dumps(
                         {
-                            "recipient": fernet.decrypt(data["email"]),
+                            "recipient": fernet.decrypt(data["email"]).decode(),
                             "message_type": "verification",
                             "message_data": {
                                 "display_name": data["display_name"],
@@ -81,7 +82,7 @@ def parse_stream(data):
         elif v.get("BOOL") is not None:
             result[k] = bool(v["BOOL"])
         elif v.get("B"):
-            result[k] = v["B"]
+            result[k] = base64.b64decode(v["B"])
     return result
 
 
