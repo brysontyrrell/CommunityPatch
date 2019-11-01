@@ -80,6 +80,8 @@ def parse_stream(data):
             result[k] = parse_stream(v["M"])
         elif v.get("BOOL") is not None:
             result[k] = bool(v["BOOL"])
+        elif v.get("B"):
+            result["k"] = v["B"]
     return result
 
 
