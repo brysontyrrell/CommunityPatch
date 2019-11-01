@@ -84,7 +84,7 @@ Resources:
         Contributors:
           Type: DynamoDB
           Properties:
-            Stream: !Ref ContributorsTable
+            Stream: !GetAtt ContributorsTable.StreamArn
             StartingPosition: TRIM_HORIZON
             BatchSize: 10
             MaximumBatchingWindowInSeconds: 60
