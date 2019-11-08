@@ -94,7 +94,7 @@ Resources:
       RoleArn: !GetAtt RegistrationServiceRole.Arn
       DefinitionString: !Sub >
         {
-          "StartsAt": "Send Verification Email",
+          "StartAt": "Send Verification Email",
           "States": {
             "Send Verification Email": {
               "Type": "Task",
