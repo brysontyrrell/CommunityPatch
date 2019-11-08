@@ -101,7 +101,7 @@ Resources:
               "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
               "TimeoutSeconds": 600,
               "Parameters": {
-                "FunctionName": "EmailService.Arn",
+                "FunctionName": "${EmailService.Arn}",
                 "Payload": {
                   "recipient.$": "$.email",
                   "message_type": "verification",
@@ -127,7 +127,7 @@ Resources:
               "Type": "Task",
               "Resource": "arn:aws:states:::lambda:invoke",
               "Parameters": {
-                "FunctionName": "EmailService.Arn",
+                "FunctionName": "${EmailService.Arn}",
                 "Payload": {
                   "recipient.$": "$.email",
                   "message_type": "api_token",
