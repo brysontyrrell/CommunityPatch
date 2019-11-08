@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+
+  Namespace:
+    Type: String
+
+  DomainName:
+    Type: String
+
+  ContributorsTableStreamArn:
+    Type: AWS::SSM::Parameter::Value<String>
+
+# SAM Globals
+
+Globals:
+  Function:
+    Runtime: python3.7
+    Handler: index.lambda_handler
+    Tracing: Active
+    Environment:
+      Variables:
+        NAMESPACE: !Ref Namespace
+
+Resources:
+
+# SNS Topics
+
+  EmailServiceTopic:
+    Type: AWS::SNS::Topic
+
+# Lambda
+
+  ContributorStream:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/contributor_stream
+      Timeout: 10
+      Policies:
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt EmailServiceTopic.TopicName
+        - Statement:
+            - Effect: Allow
+              Action: ssm:GetParameter*
+              Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/communitypatch/${Namespace}/*
+      Environment:
+        Variables:
+          DOMAIN_NAME: !Ref DomainName
+          EMAIL_SERVICE_TOPIC: !Ref EmailServiceTopic
+      Events:
+        Contributors:
+          Type: DynamoDB
+          Properties:
+            Stream: !Ref ContributorsTableStreamArn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 10
+
+  EmailService:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/email_service
+      Timeout: 10
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action: ses:SendEmail
+            Resource: '*'
+            Condition:
+              StringEquals:
+                ses:FromAddress: !Sub 'noreply@${DomainName}'
+      Environment:
+        Variables:
+          DOMAIN_NAME: !Ref DomainName
+      Events:
+        SnsTopic:
+          Type: SNS
+          Properties:
+            Topic: !Ref EmailServiceTopic
+
+# SSM Parameter Store
+
+  PublishEmailServiceTopicArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /communitypatch/${Namespace}/email_service_topic_arn
+      Type: String
+      Value: !Ref EmailServiceTopic

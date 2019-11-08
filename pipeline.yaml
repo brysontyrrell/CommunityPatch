@@ -234,6 +234,33 @@ Resources:
                   ]
               RunOrder: 1
 
+            - Name: Backend-Build
+              InputArtifacts:
+                  - Name: SourceArtifact
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              OutputArtifacts:
+                - Name: BackendBuildArtifact
+              Configuration:
+                ProjectName: !Ref BuildProject
+                EnvironmentVariables: >
+                  [
+                    {
+                      "name": "TARGET_REGIONS",
+                      "type": "PLAINTEXT",
+                      "value": "us-east-2"
+                    },
+                    {
+                      "name": "SOURCE_DIR",
+                      "type": "PLAINTEXT",
+                      "value": "backend"
+                    }
+                  ]
+              RunOrder: 1
+
             - Name: Contributors-API-Build
               InputArtifacts:
                   - Name: SourceArtifact
@@ -371,6 +398,31 @@ Resources:
                     "Namespace": "${Namespace}",
                     "DomainName": "${DomainName}",
                     "HostedZoneId": "${HostedZoneId}"
+                  }
+              RunOrder: 1
+
+        - Name: Deploy-Backend
+          Actions:
+            - Name: US2-Backend
+              Region: us-east-2
+              InputArtifacts:
+                - Name: BackendBuildArtifact
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              RoleArn: !GetAtt CloudFormationRole.Arn
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt CloudFormationRole.Arn
+                StackName: !Sub ${Namespace}-communitypatch-backend
+                TemplatePath: 'BackendBuildArtifact::packaged-backend-us-east-2.yaml'
+                ParameterOverrides: !Sub |
+                  {
+                    "Namespace": "${Namespace}",
+                    "DomainName": "${DomainName}"
                   }
               RunOrder: 1
 

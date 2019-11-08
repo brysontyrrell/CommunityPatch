@@ -13,9 +13,6 @@ Parameters:
   HostedZoneId:
     Type: String
 
-Conditions:
-  UsEast2Only: !Equals [ !Ref AWS::Region, 'us-east-2' ]
-
 # SAM Globals
 
 Globals:
@@ -35,11 +32,6 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub communitypatch-${Namespace}-${AWS::Region}-titles
-
-# SNS Topics
-
-  EmailServiceTopic:
-    Type: AWS::SNS::Topic
 
 # Lambda
 
@@ -66,54 +58,6 @@ Resources:
                 Rules:
                   - Name: prefix
                     Value: titles
-
-  ContributorStream:
-    Type: AWS::Serverless::Function
-    Condition: UsEast2Only
-    Properties:
-      CodeUri: ./src/contributor_stream
-      Timeout: 10
-      Policies:
-        - SNSPublishMessagePolicy:
-            TopicName: !GetAtt EmailServiceTopic.TopicName
-        - Statement:
-            - Effect: Allow
-              Action: ssm:GetParameter*
-              Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/communitypatch/${Namespace}/*
-      Environment:
-        Variables:
-          DOMAIN_NAME: !Ref DomainName
-          EMAIL_SERVICE_TOPIC: !Ref EmailServiceTopic
-      Events:
-        Contributors:
-          Type: DynamoDB
-          Properties:
-            Stream: !GetAtt ContributorsTable.StreamArn
-            StartingPosition: TRIM_HORIZON
-            BatchSize: 10
-
-  EmailService:
-    Type: AWS::Serverless::Function
-    Condition: UsEast2Only
-    Properties:
-      CodeUri: ./src/email_service
-      Timeout: 10
-      Policies:
-        Statement:
-          - Effect: Allow
-            Action: ses:SendEmail
-            Resource: '*'
-            Condition:
-              StringEquals:
-                ses:FromAddress: !Sub 'noreply@${DomainName}'
-      Environment:
-        Variables:
-          DOMAIN_NAME: !Ref DomainName
-      Events:
-        SnsTopic:
-          Type: SNS
-          Properties:
-            Topic: !Ref EmailServiceTopic
 
 # DynamoDB Tables
 
@@ -201,19 +145,19 @@ Resources:
       Type: String
       Value: !Ref TitlesBucket
 
-  PublishEmailServiceTopicArn:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub /communitypatch/${Namespace}/email_service_topic_arn
-      Type: String
-      Value: !Ref EmailServiceTopic
-
   PublishContributorsTableName:
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub /communitypatch/${Namespace}/contributors_table_name
       Type: String
       Value: !Ref ContributorsTable
+
+  PublishContributorsTableStreamArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /communitypatch/${Namespace}/contributors_table_stream_arn
+      Type: String
+      Value: !GetAtt ContributorsTable.StreamArn
 
   PublishRevokedTokensTableName:
     Type: AWS::SSM::Parameter

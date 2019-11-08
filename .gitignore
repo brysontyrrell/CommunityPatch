@@ -1,4 +1,4 @@
-.aws-sam/
+*.aws-sam/
 notes.rst
 deployment.yaml
 docs/_build/
