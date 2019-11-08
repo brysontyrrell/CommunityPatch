@@ -1,15 +1,12 @@
 import base64
 from decimal import Decimal
-from functools import lru_cache
 import json
 import logging
 import os
-from urllib.parse import urlencode, urlunparse
+import time
 
 from aws_xray_sdk.core import patch
 import boto3
-from botocore.exceptions import ClientError
-from cryptography.fernet import Fernet
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -17,37 +14,29 @@ logger.setLevel(logging.INFO)
 patch(["boto3"])
 
 DOMAIN_NAME = os.getenv("DOMAIN_NAME")
-EMAIL_SERVICE_TOPIC = os.getenv("EMAIL_SERVICE_TOPIC")
+REGISTRATION_SERVICE = os.getenv("REGISTRATION_SERVICE")
 NAMESPACE = os.getenv("NAMESPACE")
+
+sf_client = boto3.client("stepfunctions")
 
 
 def lambda_handler(event, context):
     logger.info(event)
-    fernet = get_fernet()
 
     for record in event["Records"]:
 
         if record["eventName"] == "INSERT":
             # INSERT only occurs on new registrations
-            new_image = process_record_image(record)
-            decrypted_email = fernet.decrypt(new_image["email"]).decode()
-            verification_url = urlunparse(
-                (
-                    "https",
-                    DOMAIN_NAME,
-                    "api/v1/contributors/verify",
-                    None,
-                    urlencode(
-                        {"id": new_image["id"], "code": new_image["verification_code"]}
-                    ),
-                    None,
-                )
+            new_image = parse_dynamodb_stream(record, 'NewImage')
+            sf_client.start_execution(
+                stateMachineArn=REGISTRATION_SERVICE,
+                name=f"{new_image['display_name']}-{int(time.time())}",
+                input=json.dumps(new_image),
             )
-            send_email(decrypted_email, new_image["display_name"], verification_url)
 
         elif record["eventName"] == "MODIFY":
-            new_image = process_record_image(record)
-            old_image = process_record_image(record, old=True)
+            new_image = parse_dynamodb_stream(record, 'NewImage')
+            old_image = parse_dynamodb_stream(record, 'OldImage')
             # Determine the delta from the OldImage and discard AWS keys
             delta = {
                 k: new_image[k]
@@ -56,70 +45,35 @@ def lambda_handler(event, context):
                 and new_image[k] != old_image[k]
                 and not k.startswith("aws:")
             }
+            logger.info(f"Delta: {delta}")
 
     return "ok"
 
 
-def process_record_image(record, old=False):
-    data = dict()
-    data.update(parse_stream(record["dynamodb"]["Keys"]))
-    data.update(parse_stream(record["dynamodb"]["OldImage" if old else "NewImage"]))
-    return data
-
-
-def parse_stream(data):
+def parse_dynamodb_stream(record, image):
     result = dict()
-    for k, v in data.items():
-        if v.get("NULL"):
-            result[k] = None
-        elif v.get("S"):
-            result[k] = str(v["S"])
-        elif v.get("N"):
-            number = Decimal(v["N"])
-            if number % 1 == 0:
-                result[k] = int(number)
-            else:
-                result[k] = float(number)
-        elif v.get("M"):
-            result[k] = parse_stream(v["M"])
-        elif v.get("BOOL") is not None:
-            result[k] = bool(v["BOOL"])
-        elif v.get("B"):
-            result[k] = base64.b64decode(v["B"])
+
+    def stream_to_dict(data):
+        stream = dict()
+        for k, v in data.items():
+            if v.get("NULL"):
+                stream[k] = None
+            elif v.get("S"):
+                stream[k] = str(v["S"])
+            elif v.get("N"):
+                number = Decimal(v["N"])
+                if number % 1 == 0:
+                    stream[k] = int(number)
+                else:
+                    stream[k] = float(number)
+            elif v.get("BOOL") is not None:
+                stream[k] = bool(v["BOOL"])
+            elif v.get("B"):
+                stream[k] = base64.b64decode(v["B"])
+            elif v.get("M"):
+                stream[k] = stream_to_dict(v["M"])
+        return stream
+
+    result.update(stream_to_dict(record["dynamodb"]["Keys"]))
+    result.update(stream_to_dict(record["dynamodb"][image]))
     return result
-
-
-@lru_cache()
-def boto3_session():
-    return boto3.Session()
-
-
-@lru_cache()
-def get_fernet():
-    ssm_client = boto3_session().client("ssm")
-    resp = ssm_client.get_parameter(
-        Name=f"/communitypatch/{NAMESPACE}/database_key", WithDecryption=True
-    )
-    return Fernet(resp["Parameter"]["Value"])
-
-
-@lru_cache()
-def email_sns_client():
-    return boto3.client("sns", region_name="us-east-2")
-
-
-def send_email(recipient, name, token):
-    try:
-        email_sns_client().publish(
-            TopicArn=EMAIL_SERVICE_TOPIC,
-            Message=json.dumps(
-                {
-                    "recipient": recipient,
-                    "message_type": "api_token",
-                    "message_data": {"display_name": name, "api_token": token},
-                }
-            ),
-            MessageStructure="string",
-        )
-    except ClientError as error:
-        logger.exception(f"Error sending SNS notification: {error}")

@@ -9,6 +9,9 @@ Parameters:
   DomainName:
     Type: String
 
+  ContributorsTableName:
+    Type: AWS::SSM::Parameter::Value<String>
+
   ContributorsTableStreamArn:
     Type: AWS::SSM::Parameter::Value<String>
 
@@ -37,6 +40,10 @@ Resources:
     Properties:
       CodeUri: ./src/contributor_stream
       Timeout: 10
+      Environment:
+        Variables:
+          DOMAIN_NAME: !Ref DomainName
+          REGISTRATION_SERVICE: !Ref RegistrationService
       Policies:
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt EmailServiceTopic.TopicName
@@ -44,10 +51,10 @@ Resources:
             - Effect: Allow
               Action: ssm:GetParameter*
               Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/communitypatch/${Namespace}/*
-      Environment:
-        Variables:
-          DOMAIN_NAME: !Ref DomainName
-          EMAIL_SERVICE_TOPIC: !Ref EmailServiceTopic
+            - Effect: Allow
+              Action: states:StartExecution
+              Resource:
+                - !Ref RegistrationService
       Events:
         Contributors:
           Type: DynamoDB
@@ -77,6 +84,99 @@ Resources:
           Type: SNS
           Properties:
             Topic: !Ref EmailServiceTopic
+
+# Step Functions
+
+# Timeout will be 86400
+  RegistrationService:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      RoleArn: !GetAtt RegistrationServiceRole.Arn
+      DefinitionString: !Sub >
+        {
+          "StartsAt": "Send Verification Email",
+          "States": {
+            "Send Verification Email": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+              "TimeoutSeconds": 600,
+              "Parameters": {
+                "FunctionName": "EmailService.Arn",
+                "Payload": {
+                  "recipient.$": "$.email",
+                  "message_type": "verification",
+                  "message_data": {
+                    "display_name.$": "$.display_name"
+                  },
+                  "task_token.$": "$$.Task.Token"
+                }
+              },
+              "Catch": [
+                {
+                  "ErrorEquals": ["States.TIMEOUT"],
+                  "Next": "Cleanup"
+                }
+              ],
+              "Next": "Generate Access Token"
+            },
+            "Generate Access Token": {
+              "Type": "Pass",
+              "Next": "Email Access Token"
+            },
+            "Email Access Token: {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "EmailService.Arn",
+                "Payload": {
+                  "recipient.$": "$.email",
+                  "message_type": "api_token",
+                  "message_data": {
+                    "display_name.$": "$.display_name"
+                  }
+                }
+              },
+              "End": true
+            },
+            "Cleanup": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::dynamodb:deleteItem",
+              "Parameters": {
+                "TableName": "${ContributorsTableName}",
+                "Key": {
+                  "id": {"S.$": "$.id"}
+                }
+              },
+              "End": true
+            }
+          }
+        }
+
+  RegistrationServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - !Sub 'states.${AWS::Region}.amazonaws.com'
+            Action: sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: StatesExecutionPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource:
+                  - !GetAtt EmailService.Arn
+              - Effect: Allow
+                Action: dynamodb:DeleteItem
+                Resource:
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ContributorsTableName}
 
 # SSM Parameter Store
 

@@ -423,6 +423,7 @@ Resources:
                   {
                     "Namespace": "${Namespace}",
                     "DomainName": "${DomainName}",
+                    "ContributorsTableName": "/communitypatch/${Namespace}/contributors_table_name",
                     "ContributorsTableStreamArn": "/communitypatch/${Namespace}/contributors_table_stream_arn"
                   }
               RunOrder: 1
