@@ -123,7 +123,7 @@ Resources:
               "Type": "Pass",
               "Next": "Email Access Token"
             },
-            "Email Access Token: {
+            "Email Access Token": {
               "Type": "Task",
               "Resource": "arn:aws:states:::lambda:invoke",
               "Parameters": {
