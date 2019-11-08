@@ -422,7 +422,8 @@ Resources:
                 ParameterOverrides: !Sub |
                   {
                     "Namespace": "${Namespace}",
-                    "DomainName": "${DomainName}"
+                    "DomainName": "${DomainName}",
+                    "ContributorsTableStreamArn": "/communitypatch/${Namespace}/contributors_table_stream_arn"
                   }
               RunOrder: 1
 
