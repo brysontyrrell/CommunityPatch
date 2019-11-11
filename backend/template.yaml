@@ -30,6 +30,9 @@ Resources:
 
 # SNS Topics
 
+  ContributorStreamTopic:
+    Type: AWS::SNS::Topic
+
   EmailServiceTopic:
     Type: AWS::SNS::Topic
 
@@ -39,6 +42,24 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/contributor_stream
+      Environment:
+        Variables:
+          CONTRIBUTOR_STREAM_TOPIC: !Ref ContributorStreamTopic
+      Policies:
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt ContributorStreamTopic.TopicName
+      Events:
+        DynamoDBStream:
+          Type: DynamoDB
+          Properties:
+            Stream: !Ref ContributorsTableStreamArn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 10
+
+  ContributorStreamProcessor:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/contributor_stream_processor
       Timeout: 10
       Environment:
         Variables:
@@ -57,11 +78,9 @@ Resources:
                 - !Ref RegistrationService
       Events:
         Contributors:
-          Type: DynamoDB
+          Type: SNS
           Properties:
-            Stream: !Ref ContributorsTableStreamArn
-            StartingPosition: TRIM_HORIZON
-            BatchSize: 10
+            Topic: !Ref ContributorStreamTopic
 
   EmailService:
     Type: AWS::Serverless::Function

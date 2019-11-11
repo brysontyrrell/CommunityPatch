@@ -1,0 +1,2 @@
+aws-xray-sdk==2.4.2
+cryptography==2.7
