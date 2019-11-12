@@ -77,16 +77,19 @@ def send_email(data):
     message_type = data["message_type"]
 
     if message_type == "verification":
-        data['message_data']['url'] = urlunparse(
+        data["message_data"]["url"] = urlunparse(
             (
-                'https',
+                "https",
                 f"contributors.{DOMAIN_NAME}",
-                'v1/verify',
+                "v1/verify",
                 None,
-                urlencode({'code': data['task_token']}),
-                None
+                urlencode({"code": data["task_token"]}),
+                None,
             )
         )
+
+    if message_type == "api_token":
+        data["api_token"] = get_fernet().decrypt(data["token"])
 
     html_template = jinja2_env.get_template(f"{message_type}.html")
     text_template = jinja2_env.get_template(f"{message_type}.txt")

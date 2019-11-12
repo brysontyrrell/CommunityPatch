@@ -16,7 +16,7 @@ patch(["boto3"])
 DOMAIN_NAME = os.getenv("DOMAIN_NAME")
 
 # Registration state machine only exists in us-east-2
-sf_client = boto3.client("stepfunctions", region_name='us-east-2')
+sf_client = boto3.client("stepfunctions", region_name="us-east-2")
 
 
 def redirect_url(status):
@@ -34,10 +34,10 @@ def lambda_handler(event, context):
         return response("missing-values", 400)
 
     try:
-        sf_client.send_task_success(taskToken=verification_code, output='{}')
+        sf_client.send_task_success(taskToken=verification_code, output="{}")
     except ClientError:
-        logger.exception('Invalid task token')
-        return response('Invalid task token', 403)
+        logger.exception("Invalid task token")
+        return response("Invalid task token", 403)
 
     return response("Success", 200)
 

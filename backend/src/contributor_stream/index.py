@@ -18,9 +18,7 @@ sns_topic = boto3.resource("sns").Topic(CONTRIBUTOR_STREAM_TOPIC)
 
 def lambda_handler(event, context):
     logger.info(event)
-    sns_topic.publish(
-        Message=json.dumps(event, cls=DecimalEncoder)
-    )
+    sns_topic.publish(Message=json.dumps(event, cls=DecimalEncoder))
     return "ok"
 
 
@@ -28,6 +26,7 @@ class DecimalEncoder(json.JSONEncoder):
     """A custom JSON decoder to handle the use of ``decimal.Decimal`` objects in
     returned data from ``boto3`` DynamoDB resource.
     """
+
     def default(self, obj):
         if isinstance(obj, Decimal):
             if obj % 1 == 0:

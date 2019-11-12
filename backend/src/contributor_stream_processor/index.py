@@ -28,7 +28,7 @@ def lambda_handler(event, context):
 
         if record["eventName"] == "INSERT":
             # INSERT only occurs on new registrations
-            new_image = parse_dynamodb_stream(record, 'NewImage')
+            new_image = parse_dynamodb_stream(record, "NewImage")
             sf_client.start_execution(
                 stateMachineArn=REGISTRATION_SERVICE,
                 name=f"{new_image['display_name']}-{int(time.time())}",
@@ -36,8 +36,8 @@ def lambda_handler(event, context):
             )
 
         elif record["eventName"] == "MODIFY":
-            new_image = parse_dynamodb_stream(record, 'NewImage')
-            old_image = parse_dynamodb_stream(record, 'OldImage')
+            new_image = parse_dynamodb_stream(record, "NewImage")
+            old_image = parse_dynamodb_stream(record, "OldImage")
             # Determine the delta from the OldImage and discard AWS keys
             delta = {
                 k: new_image[k]
@@ -53,8 +53,8 @@ def lambda_handler(event, context):
 
 def load_sns_event(event):
     """An SNS event should only contain one Record."""
-    record = event['Records'][0]
-    return json.loads(record['Sns']['Message'])['Records']
+    record = event["Records"][0]
+    return json.loads(record["Sns"]["Message"])["Records"]
 
 
 def parse_dynamodb_stream(record, image, decode_binary=False):

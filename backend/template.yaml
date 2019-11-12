@@ -121,6 +121,7 @@ Resources:
             "Send Verification Email": {
               "Type": "Task",
               "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+              "ResultPath": "$.verification_email_result",
               "TimeoutSeconds": 600,
               "Parameters": {
                 "FunctionName": "${EmailService.Arn}",
@@ -143,14 +144,21 @@ Resources:
               "Next": "Generate Access Token"
             },
             "Generate Access Token": {
-              "Type": "Pass",
-              "Result": "placeholder",
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
               "ResultPath": "$.access_token",
+              "Parameters": {
+                "FunctionName": "${GenerateToken.Arn}",
+                "Payload": {
+                  "id.$": "$.id"
+                }
+              },
               "Next": "Email Access Token"
             },
             "Email Access Token": {
               "Type": "Task",
               "Resource": "arn:aws:states:::lambda:invoke",
+              "ResultPath": "$.token_email_response",
               "Parameters": {
                 "FunctionName": "${EmailService.Arn}",
                 "Payload": {
