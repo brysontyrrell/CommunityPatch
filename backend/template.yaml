@@ -148,7 +148,7 @@ Resources:
                 {
                   "ErrorEquals": ["States.Timeout"],
                   "ResultPath": "$.error",
-                  "Next": "Cleanup"
+                  "Next": "Timeout Cleanup"
                 }
               ],
               "Next": "Generate Access Token"
