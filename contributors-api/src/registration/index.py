@@ -4,8 +4,6 @@ import json
 import logging
 import os
 import time
-from urllib.parse import urlencode, urlunparse
-import uuid
 
 from aws_xray_sdk.core import patch
 import boto3
@@ -25,10 +23,9 @@ def lambda_handler(event, context):
     body = json.loads(event["body"])
 
     id_ = hashlib.md5(body["name"].encode()).hexdigest()
-    verification_code = uuid.uuid4().hex
 
     try:
-        write_new_contributor(id_, body["name"], body["email"], verification_code)
+        write_new_contributor(id_, body["name"], body["email"])
     except ClientError as error:
         if error.response["Error"]["Code"] == "ConditionalCheckFailedException":
             return response("Conflict: The provided name is already in use", 409)
@@ -38,27 +35,21 @@ def lambda_handler(event, context):
     return response("Success", 201)
 
 
-def write_new_contributor(id_, name, email, verification_code):
+def write_new_contributor(id_, name, email):
     contributors_table = table_resource(CONTRIBUTORS_TABLE)
     fernet = get_fernet()
-
-    try:
-        contributors_table.put_item(
-            Item={
-                "id": id_,
-                "display_name": name,
-                "email": fernet.encrypt(email.encode()),
-                "verification_code": verification_code,
-                "token_id": None,
-                "verified_account": False,
-                "date_registered": int(time.time()),
-            },
-            ConditionExpression="attribute_not_exists(id) AND "
-            "attribute_not_exists(display_name)",
-        )
-    except ClientError:
-        logger.exception("Error encountered writing a new entry to the icon table")
-        raise
+    contributors_table.put_item(
+        Item={
+            "id": id_,
+            "display_name": name,
+            "email": fernet.encrypt(email.encode()).decode(),
+            "token_id": None,
+            "verified_account": False,
+            "date_registered": int(time.time()),
+        },
+        ConditionExpression="attribute_not_exists(id) AND "
+        "attribute_not_exists(display_name)",
+    )
 
 
 @lru_cache()
