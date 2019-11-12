@@ -32,7 +32,7 @@ def lambda_handler(event, context):
     .. code-block: json
 
         {
-            "recipient": "<bryson.tyrrell@gmail.com>",  # Encrypted
+            "email": "<bryson.tyrrell@gmail.com>",  # Encrypted
             "message_type": "verification",
             "message_data": {
                 "display_name": "bryson",
@@ -97,7 +97,7 @@ def send_email(data):
     else:
         subject = "Community Patch"
 
-    decrypted_recipient = get_fernet().decrypt(data["recipient"])
+    decrypted_recipient = get_fernet().decrypt(data["email"].encode())
 
     return ses_client().send_email(
         Destination={"ToAddresses": [decrypted_recipient]},

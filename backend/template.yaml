@@ -125,7 +125,7 @@ Resources:
               "Parameters": {
                 "FunctionName": "${EmailService.Arn}",
                 "Payload": {
-                  "recipient.$": "$.email",
+                  "email.$": "$.email",
                   "message_type": "verification",
                   "message_data": {
                     "display_name.$": "$.display_name"
