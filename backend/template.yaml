@@ -90,6 +90,9 @@ Resources:
       Policies:
         Statement:
           - Effect: Allow
+            Action: ssm:GetParameter*
+            Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/communitypatch/${Namespace}/*
+          - Effect: Allow
             Action: ses:SendEmail
             Resource: '*'
             Condition:
