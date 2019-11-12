@@ -84,7 +84,7 @@ def send_email(data):
                 f"contributors.{DOMAIN_NAME}",
                 'v1/verify',
                 None,
-                urlencode({'code': base64.b64encode(data['task_token'].encode()).decode()}),
+                urlencode({'code': data['task_token']}),
                 None
             )
         )
