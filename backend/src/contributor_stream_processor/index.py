@@ -54,7 +54,7 @@ def lambda_handler(event, context):
 def load_sns_event(event):
     """An SNS event should only contain one Record."""
     record = event['Records'][0]
-    return json.loads(record['Sns']['Message'])
+    return json.loads(record['Sns']['Message'])['Records']
 
 
 def parse_dynamodb_stream(record, image):
