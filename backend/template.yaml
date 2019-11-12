@@ -86,6 +86,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/generate_token
+      MemorySize: 512
       Policies:
         - Statement:
           - Effect: Allow
@@ -163,6 +164,22 @@ Resources:
                   "id.$": "$.id"
                 }
               },
+              "Next": "Update Token ID"
+            },
+            "Update Token ID": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::dynamodb:updateItem",
+              "ResultPath": "$.dydb_update_result",
+              "Parameters": {
+                "TableName": "${ContributorsTableName}",
+                "Key": {
+                  "id": {"S.$": "$.id"}
+                },
+                "UpdateExpression": "SET token_id = :tid",
+                "ExpressionAttributeValues": {
+                  ":tid": {"S.$": "$.access_token.Payload.id"}
+                }
+              },
               "Next": "Email Access Token"
             },
             "Email Access Token": {
@@ -172,10 +189,11 @@ Resources:
               "Parameters": {
                 "FunctionName": "${EmailService.Arn}",
                 "Payload": {
-                  "recipient.$": "$.email",
+                  "email.$": "$.email",
                   "message_type": "api_token",
                   "message_data": {
-                    "display_name.$": "$.display_name"
+                    "display_name.$": "$.display_name",
+                    "token.$": "$.access_token.Payload.token"
                   }
                 }
               },
@@ -218,7 +236,9 @@ Resources:
                   - !GetAtt EmailService.Arn
                   - !GetAtt GenerateToken.Arn
               - Effect: Allow
-                Action: dynamodb:DeleteItem
+                Action:
+                  - dynamodb:DeleteItem
+                  - dynamodb:UpdateItem
                 Resource:
                   - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ContributorsTableName}
 
