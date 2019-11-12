@@ -97,7 +97,7 @@ def send_email(data):
     else:
         subject = "Community Patch"
 
-    decrypted_recipient = get_fernet().decrypt(data["email"].encode())
+    decrypted_recipient = get_fernet().decrypt(data["email"].encode()).decode()
 
     return ses_client().send_email(
         Destination={"ToAddresses": [decrypted_recipient]},
