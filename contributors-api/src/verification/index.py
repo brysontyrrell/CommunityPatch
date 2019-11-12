@@ -34,9 +34,9 @@ def lambda_handler(event, context):
         return response("missing-values", 400)
 
     try:
-        sf_client.send_task_success(taskToken=verification_code, output='')
+        sf_client.send_task_success(taskToken=verification_code, output='{}')
     except ClientError:
-        logger.error('Invalid task token')
+        logger.exception('Invalid task token')
         return response('Invalid task token', 403)
 
     return response("Success", 200)
