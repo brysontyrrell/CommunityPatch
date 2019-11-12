@@ -82,6 +82,16 @@ Resources:
           Properties:
             Topic: !Ref ContributorStreamTopic
 
+  GenerateToken:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/generate_token
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action: ssm:GetParameter*
+            Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/communitypatch/${Namespace}/*
+
   EmailService:
     Type: AWS::Serverless::Function
     Properties:
