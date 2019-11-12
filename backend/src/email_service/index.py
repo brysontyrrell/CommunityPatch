@@ -1,4 +1,3 @@
-import base64
 from functools import lru_cache
 import json
 import logging

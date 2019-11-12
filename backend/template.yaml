@@ -136,6 +136,7 @@ Resources:
               "Catch": [
                 {
                   "ErrorEquals": ["States.Timeout"],
+                  "ResultPath": "$.error",
                   "Next": "Cleanup"
                 }
               ],
@@ -143,6 +144,8 @@ Resources:
             },
             "Generate Access Token": {
               "Type": "Pass",
+              "Result": "placeholder",
+              "ResultPath": "$.access_token",
               "Next": "Email Access Token"
             },
             "Email Access Token": {

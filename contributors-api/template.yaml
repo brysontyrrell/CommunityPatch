@@ -97,6 +97,7 @@ Resources:
     Description: Creates and rotates tokens.
     Properties:
       CodeUri: ./src/registration
+      MemorySize: 512
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref ContributorsTableName
@@ -127,6 +128,9 @@ Resources:
             - Effect: Allow
               Action: ssm:GetParameter*
               Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/communitypatch/${Namespace}*'
+            - Effect: Allow
+              Action: states:SendTask*
+              Resource: '*'
       Events:
         ApiContributorRegistration:
           Type: Api
