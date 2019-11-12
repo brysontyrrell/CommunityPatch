@@ -135,7 +135,7 @@ Resources:
               },
               "Catch": [
                 {
-                  "ErrorEquals": ["States.TIMEOUT"],
+                  "ErrorEquals": ["States.Timeout"],
                   "Next": "Cleanup"
                 }
               ],
