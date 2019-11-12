@@ -57,7 +57,7 @@ def load_sns_event(event):
     return json.loads(record['Sns']['Message'])['Records']
 
 
-def parse_dynamodb_stream(record, image):
+def parse_dynamodb_stream(record, image, decode_binary=False):
     result = dict()
 
     def stream_to_dict(data):
@@ -76,7 +76,10 @@ def parse_dynamodb_stream(record, image):
             elif v.get("BOOL") is not None:
                 stream[k] = bool(v["BOOL"])
             elif v.get("B"):
-                stream[k] = base64.b64decode(v["B"])
+                if decode_binary:
+                    stream[k] = base64.b64decode(v["B"])
+                else:
+                    stream[k] = v["B"]
             elif v.get("M"):
                 stream[k] = stream_to_dict(v["M"])
         return stream
