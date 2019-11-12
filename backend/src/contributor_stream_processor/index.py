@@ -22,8 +22,9 @@ sf_client = boto3.client("stepfunctions")
 
 def lambda_handler(event, context):
     logger.info(event)
+    stream_records = load_sns_event(event)
 
-    for record in event["Records"]:
+    for record in stream_records:
 
         if record["eventName"] == "INSERT":
             # INSERT only occurs on new registrations
@@ -48,6 +49,12 @@ def lambda_handler(event, context):
             logger.info(f"Delta: {delta}")
 
     return "ok"
+
+
+def load_sns_event(event):
+    """An SNS event should only contain one Record."""
+    record = event['Records'][0]
+    return json.loads(record['Sns']['Message'])
 
 
 def parse_dynamodb_stream(record, image):
