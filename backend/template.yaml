@@ -181,7 +181,7 @@ Resources:
               },
               "End": true
             },
-            "Cleanup": {
+            "Timeout Cleanup": {
               "Type": "Task",
               "Resource": "arn:aws:states:::dynamodb:deleteItem",
               "Parameters": {
@@ -216,6 +216,7 @@ Resources:
                 Action: lambda:InvokeFunction
                 Resource:
                   - !GetAtt EmailService.Arn
+                  - !GetAtt GenerateToken.Arn
               - Effect: Allow
                 Action: dynamodb:DeleteItem
                 Resource:
