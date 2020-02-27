@@ -12,12 +12,12 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: BucketOwnerFullControl
-      BucketName: !Sub 'communitypatch-${Namespace}-${AWS::Region}-artifacts'
+      BucketName: !Sub '${Namespace}-communitypatch-${AWS::Region}-artifacts'
       LifecycleConfiguration:
         Rules:
           - Id: 14 day Lifecycle
-            Prefix: /
             Status: Enabled
-            ExpirationInDays: '14'
+            ExpirationInDays: 14
+            NoncurrentVersionExpirationInDays: 21
       VersioningConfiguration:
         Status: Enabled
