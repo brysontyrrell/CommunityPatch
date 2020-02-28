@@ -297,7 +297,6 @@ Resources:
                 TemplatePath: 'SourceArtifact::resources/global/template.yaml'
                 ParameterOverrides: !Sub |
                   {
-                    "Namespace": "${Namespace}",
                     "DomainName": "${DomainName}",
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn"
                   }
@@ -329,7 +328,7 @@ Resources:
                     "HostedZoneId": "${HostedZoneId}"
                   }
                 OutputFileName: outputs.json
-              RunOrder: 1
+              RunOrder: 2
 
             - Name: EU-Resources
               Region: eu-central-1
@@ -356,7 +355,7 @@ Resources:
                     "HostedZoneId": "${HostedZoneId}"
                   }
                 OutputFileName: outputs.json
-              RunOrder: 1
+              RunOrder: 2
 
             - Name: AUS-Resources
               Region: ap-southeast-2
@@ -383,7 +382,7 @@ Resources:
                     "HostedZoneId": "${HostedZoneId}"
                   }
                 OutputFileName: outputs.json
-              RunOrder: 1
+              RunOrder: 2
 
         - Name: Deploy-API-Stacks
           Actions:
