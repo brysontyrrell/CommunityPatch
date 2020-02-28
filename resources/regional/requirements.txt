@@ -1,0 +1,1 @@
+# This is a hack to get `sam build` working when a standard inline Lambda is in the same template

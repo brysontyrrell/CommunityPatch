@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+
+  DomainName:
+    Type: String
+
+  RegionalCertificateArn:
+    Type: String
+
+Resources:
+
+# Global DynamoDB Table
+
+# Must configure global table in the console at this time.
+
+  CommunityPatchTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+
+# Cognito User Pool
+
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Ref AWS::StackName
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      CustomDomainConfig:
+         CertificateArn: !Ref RegionalCertificateArn
+      Domain: !Sub "auth.${DomainName}"
+      UserPoolId: !Ref UserPool
+
+# Cognito Resource Servers
+
+
+
+# Cognito Clients
+
+  AppleIdLoginClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: appleid-logins
+      RefreshTokenValidity: 30
+      UserPoolId: !Ref UserPool
+      CallbackURLs:
+        - !Sub "https://contributors.${DomainName}/oauth2/appleid/tokens"
+        - !Sub "https://auth.${DomainName}/oauth2/idpresponse"
+      LogoutURLs:
+        - - !Sub "https://contributors.${DomainName}/oauth2/appleid/logout"
+      AllowedOAuthFlowsUserPoolClient: True
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - openid
+
+# Stack Outputs
+
+Outputs:
+
+  CommunityPatchTableName:
+    Value: !Ref CommunityPatchTable
+
+  CognitoUserPoolArn:
+    Value: !GetAtt UserPool.Arn
+
+  AppleIdLoginClientId:
+    Value: !Ref AppleIdLoginClient

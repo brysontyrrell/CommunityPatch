@@ -13,6 +13,9 @@ Parameters:
   HostedZoneId:
     Type: String
 
+  CommunityPatchTableName:
+    Type: String
+
 # SAM Globals
 
 Globals:
@@ -26,149 +29,81 @@ Globals:
 
 Resources:
 
-# S3 Buckets
+# Table Stream ARN Lookup
 
-  TitlesBucket:
-    Type: AWS::S3::Bucket
+  DynamoDBStreamArnLookup:
+    Type: AWS::Lambda::Function
     Properties:
-      BucketName: !Sub communitypatch-${Namespace}-${AWS::Region}-titles
+      Runtime: python3.7
+      Handler: index.lambda_handler
+      Role: !GetAtt DynamoDBStreamArnLookupRole.Arn
+      Code:
+        ZipFile: |
+          import boto3
+          import cfnresponse
 
-# Lambda
+          client = boto3.client('dynamodb')
 
-  TitleSyncService:
+          def lambda_handler(event, context):
+              try:
+                  table_name = event['ResourceProperties']['TableName']
+                  response = client.describe_table(TableName=table_name)
+                  stream_arn = response['Table']['LatestStreamArn']
+                  cfnresponse.send(
+                      event, context, cfnresponse.SUCCESS, {'Arn': stream_arn}
+                  )
+              except Exception as error:
+                  cfnresponse.send(
+                      event, context, cfnresponse.FAILED, {'Error': type(error).__name__, 'Message': str(error)}
+                  )
+
+  DynamoDBStreamArnLookupRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DescribeDynamoDB
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: dynamodb:Describe*
+                Resource: '*'
+
+  CommunityPatchTableStream:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !GetAtt DynamoDBStreamArnLookup.Arn
+      TableName: !Ref CommunityPatchTableName
+
+# EventBridge
+
+  DataEvents:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub ${Namespace}-communitypatch
+
+  TableStreamProcessor:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/title_sync_service
-      MemorySize: 512
-      Timeout: 10
+      CodeUri: ./src/stream_processor
       Policies:
-        - S3CrudPolicy:
-            BucketName: !Sub communitypatch-${Namespace}-*-titles
+        - Statement:
+            - Effect: Allow
+              Action: events:PutEvents
+              Resource: !GetAtt DataEvents.Arn
       Events:
-        S3Event:
-          Type: S3
+        DeploymentsTableEvent:
+          Type: DynamoDB
           Properties:
-            Bucket: !Ref TitlesBucket
-            Events:
-              - s3:ObjectCreated:Put
-              - s3:ObjectCreated:Post
-              - s3:ObjectRemoved:Delete
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: prefix
-                    Value: titles
+            Stream: !Ref CommunityPatchTableStream
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 10
 
-# DynamoDB Tables
-
-  ContributorsTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: !Sub CommunityPatch-${Namespace}-Contributors-v1
-      BillingMode: PROVISIONED
-      ProvisionedThroughput:
-        ReadCapacityUnits: 4
-        WriteCapacityUnits: 4
-
-      AttributeDefinitions:
-        - AttributeName: id
-          AttributeType: S
-
-      KeySchema:
-        - AttributeName: id
-          KeyType: HASH
-
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
-
-  RevokedTokensTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: !Sub CommunityPatch-${Namespace}-RevokedTokens-v1
-      BillingMode: PROVISIONED
-      ProvisionedThroughput:
-        ReadCapacityUnits: 4
-        WriteCapacityUnits: 4
-
-      AttributeDefinitions:
-        - AttributeName: token_id
-          AttributeType: S
-
-      KeySchema:
-        - AttributeName: token_id
-          KeyType: HASH
-
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
-
-  TitlesTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: !Sub CommunityPatch-${Namespace}-Titles-v1
-      BillingMode: PAY_PER_REQUEST
-
-      AttributeDefinitions:
-        - AttributeName: contributor_id
-          AttributeType: S
-        - AttributeName: title_id
-          AttributeType: S
-
-      KeySchema:
-        - AttributeName: contributor_id
-          KeyType: HASH
-        - AttributeName: title_id
-          KeyType: RANGE
-
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
-
-# SSM Parameter Store
-
-  PublishDomainName:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub /communitypatch/${Namespace}/domain_name
-      Type: String
-      Value: !Ref DomainName
-
-  PublishHostedZoneId:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub /communitypatch/${Namespace}/hosted_zone_id
-      Type: String
-      Value: !Ref HostedZoneId
-
-  PublishTitlesBucketName:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub /communitypatch/${Namespace}/titles_bucket_name
-      Type: String
-      Value: !Ref TitlesBucket
-
-  PublishContributorsTableName:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub /communitypatch/${Namespace}/contributors_table_name
-      Type: String
-      Value: !Ref ContributorsTable
-
-  PublishContributorsTableStreamArn:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub /communitypatch/${Namespace}/contributors_table_stream_arn
-      Type: String
-      Value: !GetAtt ContributorsTable.StreamArn
-
-  PublishRevokedTokensTableName:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub /communitypatch/${Namespace}/revoked_tokens_table_name
-      Type: String
-      Value: !Ref RevokedTokensTable
-
-  PublishTitlesTableName:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub /communitypatch/${Namespace}/titles_table_name
-      Type: String
-      Value: !Ref TitlesTable
