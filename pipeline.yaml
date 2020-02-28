@@ -402,7 +402,7 @@ Resources:
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
                 StackName: !Sub ${Namespace}-communitypatch-contributors-api
-                TemplatePath: 'ContributorsApiBuildArtifact::packaged-contributors-api-us-east-2.yaml'
+                TemplatePath: 'ContributorsApiBuildArtifact::packaged-us-east-2.yaml'
                 ParameterOverrides: !Sub |
                   {
                     "Namespace": "${Namespace}",
@@ -429,7 +429,7 @@ Resources:
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
                 StackName: !Sub ${Namespace}-communitypatch-contributors-api
-                TemplatePath: 'ContributorsApiBuildArtifact::packaged-contributors-api-eu-central-1.yaml'
+                TemplatePath: 'ContributorsApiBuildArtifact::packaged-eu-central-1.yaml'
                 ParameterOverrides: !Sub |
                   {
                     "Namespace": "${Namespace}",
@@ -456,7 +456,7 @@ Resources:
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
                 StackName: !Sub ${Namespace}-communitypatch-contributors-api
-                TemplatePath: 'ContributorsApiBuildArtifact::packaged-contributors-api-ap-southeast-2.yaml'
+                TemplatePath: 'ContributorsApiBuildArtifact::packaged-ap-southeast-2.yaml'
                 ParameterOverrides: !Sub |
                   {
                     "Namespace": "${Namespace}",
@@ -484,7 +484,7 @@ Resources:
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
                 StackName: !Sub ${Namespace}-communitypatch-titles-api
-                TemplatePath: 'TitlesApiBuildArtifact::packaged-titles-api-us-east-2.yaml'
+                TemplatePath: 'TitlesApiBuildArtifact::packaged-us-east-2.yaml'
                 ParameterOverrides: !Sub |
                   {
                     "DomainName": "${DomainName}",
@@ -509,7 +509,7 @@ Resources:
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
                 StackName: !Sub ${Namespace}-communitypatch-titles-api
-                TemplatePath: 'TitlesApiBuildArtifact::packaged-titles-api-eu-central-1.yaml'
+                TemplatePath: 'TitlesApiBuildArtifact::packaged-eu-central-1.yaml'
                 ParameterOverrides: !Sub |
                   {
                     "DomainName": "${DomainName}",
@@ -534,7 +534,7 @@ Resources:
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
                 StackName: !Sub ${Namespace}-communitypatch-titles-api
-                TemplatePath: 'TitlesApiBuildArtifact::packaged-titles-api-ap-southeast-2.yaml'
+                TemplatePath: 'TitlesApiBuildArtifact::packaged-ap-southeast-2.yaml'
                 ParameterOverrides: !Sub |
                   {
                     "DomainName": "${DomainName}",
@@ -559,7 +559,7 @@ Resources:
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
                 StackName: !Sub ${Namespace}-communitypatch-jamf-api
-                TemplatePath: 'JamfApiBuildArtifact::packaged-jamf-api-us-east-2.yaml'
+                TemplatePath: 'JamfApiBuildArtifact::packaged-us-east-2.yaml'
                 ParameterOverrides: !Sub |
                   {
                     "DomainName": "${DomainName}",
@@ -584,7 +584,7 @@ Resources:
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
                 StackName: !Sub ${Namespace}-communitypatch-jamf-api
-                TemplatePath: 'JamfApiBuildArtifact::packaged-jamf-api-eu-central-1.yaml'
+                TemplatePath: 'JamfApiBuildArtifact::packaged-eu-central-1.yaml'
                 ParameterOverrides: !Sub |
                   {
                     "DomainName": "${DomainName}",
@@ -609,7 +609,7 @@ Resources:
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
                 StackName: !Sub ${Namespace}-communitypatch-jamf-api
-                TemplatePath: 'JamfApiBuildArtifact::packaged-jamf-api-ap-southeast-2.yaml'
+                TemplatePath: 'JamfApiBuildArtifact::packaged-ap-southeast-2.yaml'
                 ParameterOverrides: !Sub |
                   {
                     "DomainName": "${DomainName}",
