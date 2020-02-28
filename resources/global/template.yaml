@@ -6,7 +6,7 @@ Parameters:
     Type: String
 
   RegionalCertificateArn:
-    Type: String
+    Type: AWS::SSM::Parameter::Value<String>
 
 Resources:
 
