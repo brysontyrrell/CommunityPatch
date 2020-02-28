@@ -10,30 +10,6 @@ Parameters:
 
 Resources:
 
-# Global DynamoDB Table
-
-# Must configure global table in the console at this time.
-
-  CommunityPatchTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      BillingMode: PAY_PER_REQUEST
-
-      AttributeDefinitions:
-        - AttributeName: pk
-          AttributeType: S
-        - AttributeName: sk
-          AttributeType: S
-
-      KeySchema:
-        - AttributeName: pk
-          KeyType: HASH
-        - AttributeName: sk
-          KeyType: RANGE
-
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
-
 # Cognito User Pool
 
   UserPool:
@@ -75,9 +51,6 @@ Resources:
 # Stack Outputs
 
 Outputs:
-
-  CommunityPatchTableName:
-    Value: !Ref CommunityPatchTable
 
   CognitoUserPoolArn:
     Value: !GetAtt UserPool.Arn

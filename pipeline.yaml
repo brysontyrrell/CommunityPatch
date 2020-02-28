@@ -277,12 +277,12 @@ Resources:
 
         - Name: Resources
           Actions:
-            - Name: USE2-Global
-              Region: us-east-2
+            - Name: US1-Cognito
+              Region: us-east-1
               InputArtifacts:
                 - Name: SourceArtifact
               OutputArtifacts:
-                - Name: GlobalArtifact
+                - Name: CognitoArtifact
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -294,12 +294,33 @@ Resources:
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
                 StackName: !Sub ${Namespace}-communitypatch-global
-                TemplatePath: 'SourceArtifact::resources/global/template.yaml'
+                TemplatePath: 'SourceArtifact::resources/global/cognito.yaml'
                 ParameterOverrides: !Sub |
                   {
                     "DomainName": "${DomainName}",
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn"
                   }
+                OutputFileName: outputs.json
+              RunOrder: 1
+
+            - Name: US2-Global-Tables
+              Region: us-east-2
+              InputArtifacts:
+                - Name: SourceArtifact
+              OutputArtifacts:
+                - Name: GlobalTablesArtifact
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              RoleArn: !GetAtt CloudFormationRole.Arn
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt CloudFormationRole.Arn
+                StackName: !Sub ${Namespace}-communitypatch-global
+                TemplatePath: 'SourceArtifact::resources/global/tables.yaml'
                 OutputFileName: outputs.json
               RunOrder: 1
 
@@ -408,8 +429,8 @@ Resources:
                     "DomainName": "${DomainName}",
                     "HostedZoneId": "${HostedZoneId}"
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "AppleClientId": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "AppleIdLoginClientId"]},
-                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "CommunityPatchTableName"]}
+                    "AppleClientId": { "Fn::GetParam" : ["CognitoArtifact", "outputs.json", "AppleIdLoginClientId"]},
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
               RunOrder: 1
 
@@ -435,8 +456,8 @@ Resources:
                     "DomainName": "${DomainName}",
                     "HostedZoneId": "${HostedZoneId}"
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "AppleClientId": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "AppleIdLoginClientId"]},
-                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "CommunityPatchTableName"]}
+                    "AppleClientId": { "Fn::GetParam" : ["CognitoArtifact", "outputs.json", "AppleIdLoginClientId"]},
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
               RunOrder: 1
 
@@ -462,8 +483,8 @@ Resources:
                     "DomainName": "${DomainName}",
                     "HostedZoneId": "${HostedZoneId}"
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "AppleClientId": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "AppleIdLoginClientId"]},
-                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "CommunityPatchTableName"]}
+                    "AppleClientId": { "Fn::GetParam" : ["CognitoArtifact", "outputs.json", "AppleIdLoginClientId"]},
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
               RunOrder: 1
 
@@ -489,7 +510,7 @@ Resources:
                     "DomainName": "${DomainName}",
                     "HostedZoneId": "${HostedZoneId}"
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "CommunityPatchTableName"]}
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
               RunOrder: 2
 
@@ -514,7 +535,7 @@ Resources:
                     "DomainName": "${DomainName}",
                     "HostedZoneId": "${HostedZoneId}"
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "CommunityPatchTableName"]}
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
               RunOrder: 2
 
@@ -539,7 +560,7 @@ Resources:
                     "DomainName": "${DomainName}",
                     "HostedZoneId": "${HostedZoneId}"
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "CommunityPatchTableName"]}
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
               RunOrder: 2
 
@@ -564,7 +585,7 @@ Resources:
                     "DomainName": "${DomainName}",
                     "HostedZoneId": "${HostedZoneId}"
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "CommunityPatchTableName"]}
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
               RunOrder: 3
 
@@ -589,7 +610,7 @@ Resources:
                     "DomainName": "${DomainName}",
                     "HostedZoneId": "${HostedZoneId}"
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "CommunityPatchTableName"]}
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
               RunOrder: 3
 
@@ -614,7 +635,7 @@ Resources:
                     "DomainName": "${DomainName}",
                     "HostedZoneId": "${HostedZoneId}"
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "CommunityPatchTableName"]}
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
               RunOrder: 3
 
