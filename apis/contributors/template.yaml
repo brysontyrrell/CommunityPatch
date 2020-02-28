@@ -15,6 +15,9 @@ Parameters:
   RegionalCertificateArn:
     Type: AWS::SSM::Parameter::Value<String>
 
+  AppleClientId:
+    Type: String
+
   ContributorsTableName:
     Type: AWS::SSM::Parameter::Value<String>
 
@@ -27,6 +30,7 @@ Globals:
     Tracing: PassThrough
     Environment:
       Variables:
+        CLIENT_ID: !Ref AppleClientId
         CONTRIBUTORS_TABLE: !Ref ContributorsTableName
         DOMAIN_NAME: !Ref DomainName
         NAMESPACE: !Ref Namespace
@@ -41,22 +45,6 @@ Resources:
       StageName: Prod
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
-
-      Models:
-        Registration:
-          type: object
-          properties:
-            email:
-              id: /properties/email
-              type: string
-              pattern: '^[^@\s]+@[^@\s]+\.[^@\s]+$'
-            name:
-              id: /properities/name
-              type: string
-              pattern: '^\S+$'
-          required:
-            - email
-            - name
 
   ApiCustomDomain:
     Type: AWS::ApiGateway::DomainName
@@ -92,50 +80,29 @@ Resources:
 
 # Lambda
 
-  Registration:
+  Oauth2AppleIdToken:
     Type: AWS::Serverless::Function
     Description: Creates and rotates tokens.
     Properties:
-      CodeUri: ./src/registration
-      MemorySize: 512
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ContributorsTableName
-        - Statement:
-            - Effect: Allow
-              Action: ssm:GetParameter*
-              Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/communitypatch/${Namespace}/*'
+      CodeUri: ./src/oauth2_appleid_token
       Events:
-        ApiContributorRegistration:
+        GetToken:
           Type: Api
           Properties:
-            Path: /v1/register
-            Method: post
-            RequestModel:
-              Model: Registration
-              Required: true
+            Path: /oauth2/appleid/token
+            Method: get
             RestApiId:
                 Ref: ApiGateway
 
-  Verification:
+  Oauth2AppleIdLogout:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/verification
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ContributorsTableName
-        - Statement:
-            - Effect: Allow
-              Action: ssm:GetParameter*
-              Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/communitypatch/${Namespace}*'
-            - Effect: Allow
-              Action: states:SendTask*
-              Resource: '*'
+      CodeUri: ./src/oauth2_appleid_token
       Events:
-        ApiContributorRegistration:
+        Logout:
           Type: Api
           Properties:
-            Path: /v1/verify
+            Path: /oauth2/appleid/logout
             Method: get
             RestApiId:
                 Ref: ApiGateway
