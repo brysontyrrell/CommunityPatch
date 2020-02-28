@@ -65,7 +65,7 @@ Resources:
         - !Sub "https://contributors.${DomainName}/oauth2/appleid/tokens"
         - !Sub "https://auth.${DomainName}/oauth2/idpresponse"
       LogoutURLs:
-        - - !Sub "https://contributors.${DomainName}/oauth2/appleid/logout"
+        - !Sub "https://contributors.${DomainName}/oauth2/appleid/logout"
       AllowedOAuthFlowsUserPoolClient: True
       AllowedOAuthFlows:
         - code
