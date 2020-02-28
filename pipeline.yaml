@@ -16,7 +16,7 @@ Parameters:
 
   Namespace:
     Type: String
-    Description: Segments CloudFormation stack names and Parameter Store paths
+    Description: Segments CloudFormation stack names
 
   GitHubToken:
     Type: String
@@ -32,9 +32,6 @@ Parameters:
     Type: String
 
   HostedZoneId:
-    Type: String
-
-  CertificateId:
     Type: String
 
 Metadata:
@@ -212,56 +209,7 @@ Resources:
 
         - Name: Build
           Actions:
-            - Name: Resources-Build
-              InputArtifacts:
-                - Name: SourceArtifact
-              ActionTypeId:
-                Category: Build
-                Owner: AWS
-                Provider: CodeBuild
-                Version: 1
-              OutputArtifacts:
-                - Name: ResourcesBuildArtifact
-              Configuration:
-                ProjectName: !Ref BuildProject
-                EnvironmentVariables: >
-                  [
-                    {
-                      "name": "SOURCE_DIR",
-                      "type": "PLAINTEXT",
-                      "value": "resources"
-                    }
-                  ]
-              RunOrder: 1
-
-            - Name: Backend-Build
-              InputArtifacts:
-                  - Name: SourceArtifact
-              ActionTypeId:
-                Category: Build
-                Owner: AWS
-                Provider: CodeBuild
-                Version: 1
-              OutputArtifacts:
-                - Name: BackendBuildArtifact
-              Configuration:
-                ProjectName: !Ref BuildProject
-                EnvironmentVariables: >
-                  [
-                    {
-                      "name": "TARGET_REGIONS",
-                      "type": "PLAINTEXT",
-                      "value": "us-east-2"
-                    },
-                    {
-                      "name": "SOURCE_DIR",
-                      "type": "PLAINTEXT",
-                      "value": "backend"
-                    }
-                  ]
-              RunOrder: 1
-
-            - Name: Contributors-API-Build
+            - Name: Contributors-API
               InputArtifacts:
                   - Name: SourceArtifact
               ActionTypeId:
@@ -278,12 +226,12 @@ Resources:
                     {
                       "name": "SOURCE_DIR",
                       "type": "PLAINTEXT",
-                      "value": "contributors-api"
+                      "value": "apis/contributors"
                     }
                   ]
               RunOrder: 1
 
-            - Name: Patch-API-Build
+            - Name: Titles-API
               InputArtifacts:
                 - Name: SourceArtifact
               ActionTypeId:
@@ -292,7 +240,7 @@ Resources:
                 Provider: CodeBuild
                 Version: 1
               OutputArtifacts:
-                - Name: PatchApiBuildArtifact
+                - Name: TitlesApiBuildArtifact
               Configuration:
                 ProjectName: !Ref BuildProject
                 EnvironmentVariables: >
@@ -300,12 +248,12 @@ Resources:
                     {
                       "name": "SOURCE_DIR",
                       "type": "PLAINTEXT",
-                      "value": "patch-api"
+                      "value": "apis/titles"
                     }
                   ]
               RunOrder: 1
 
-            - Name: Jamf-API-Build
+            - Name: Jamf-API
               InputArtifacts:
                 - Name: SourceArtifact
               ActionTypeId:
@@ -322,17 +270,46 @@ Resources:
                     {
                       "name": "SOURCE_DIR",
                       "type": "PLAINTEXT",
-                      "value": "jamf-api"
+                      "value": "apis/jamf"
                     }
                   ]
               RunOrder: 1
 
-        - Name: Deploy-Resources
+        - Name: Resources
           Actions:
+            - Name: USE1-Global
+              Region: us-east-1
+              InputArtifacts:
+                - Name: SourceArtifact
+              OutputArtifacts:
+                - Name: GlobalArtifact
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              RoleArn: !GetAtt CloudFormationRole.Arn
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt CloudFormationRole.Arn
+                StackName: !Sub ${Namespace}-communitypatch-global
+                TemplatePath: 'SourceArtifact::resources/global/template.yaml'
+                ParameterOverrides: !Sub |
+                  {
+                    "Namespace": "${Namespace}",
+                    "DomainName": "${DomainName}",
+                    "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn"
+                  }
+                OutputFileName: outputs.json
+              RunOrder: 1
+
             - Name: US2-Resources
               Region: us-east-2
               InputArtifacts:
-                - Name: ResourcesBuildArtifact
+                - Name: SourceArtifact
+              OutputArtifacts:
+                - Name: USResourcesArtifact
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -344,19 +321,22 @@ Resources:
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
                 StackName: !Sub ${Namespace}-communitypatch-resources
-                TemplatePath: 'ResourcesBuildArtifact::packaged-resources-us-east-2.yaml'
+                TemplatePath: 'SourceArtifact::resources/regional/template.yaml'
                 ParameterOverrides: !Sub |
                   {
                     "Namespace": "${Namespace}",
                     "DomainName": "${DomainName}",
                     "HostedZoneId": "${HostedZoneId}"
                   }
+                OutputFileName: outputs.json
               RunOrder: 1
 
             - Name: EU-Resources
               Region: eu-central-1
               InputArtifacts:
-                - Name: ResourcesBuildArtifact
+                - Name: SourceArtifact
+              OutputArtifacts:
+                - Name: EUResourcesArtifact
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -368,19 +348,22 @@ Resources:
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
                 StackName: !Sub ${Namespace}-communitypatch-resources
-                TemplatePath: 'ResourcesBuildArtifact::packaged-resources-eu-central-1.yaml'
+                TemplatePath: 'SourceArtifact::resources/regional/template.yaml'
                 ParameterOverrides: !Sub |
                   {
                     "Namespace": "${Namespace}",
                     "DomainName": "${DomainName}",
                     "HostedZoneId": "${HostedZoneId}"
                   }
+                OutputFileName: outputs.json
               RunOrder: 1
 
             - Name: AUS-Resources
               Region: ap-southeast-2
               InputArtifacts:
-                - Name: ResourcesBuildArtifact
+                - Name: SourceArtifact
+              OutputArtifacts:
+                - Name: AUSResourcesArtifact
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -392,40 +375,14 @@ Resources:
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
                 StackName: !Sub ${Namespace}-communitypatch-resources
-                TemplatePath: 'ResourcesBuildArtifact::packaged-resources-ap-southeast-2.yaml'
+                TemplatePath: 'SourceArtifact::resources/regional/template.yaml'
                 ParameterOverrides: !Sub |
                   {
                     "Namespace": "${Namespace}",
                     "DomainName": "${DomainName}",
                     "HostedZoneId": "${HostedZoneId}"
                   }
-              RunOrder: 1
-
-        - Name: Deploy-Backend
-          Actions:
-            - Name: US2-Backend
-              Region: us-east-2
-              InputArtifacts:
-                - Name: BackendBuildArtifact
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Provider: CloudFormation
-                Version: 1
-              RoleArn: !GetAtt CloudFormationRole.Arn
-              Configuration:
-                ActionMode: CREATE_UPDATE
-                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-                RoleArn: !GetAtt CloudFormationRole.Arn
-                StackName: !Sub ${Namespace}-communitypatch-backend
-                TemplatePath: 'BackendBuildArtifact::packaged-backend-us-east-2.yaml'
-                ParameterOverrides: !Sub |
-                  {
-                    "Namespace": "${Namespace}",
-                    "DomainName": "${DomainName}",
-                    "ContributorsTableName": "/communitypatch/${Namespace}/contributors_table_name",
-                    "ContributorsTableStreamArn": "/communitypatch/${Namespace}/contributors_table_stream_arn"
-                  }
+                OutputFileName: outputs.json
               RunOrder: 1
 
         - Name: Deploy-API-Stacks
@@ -449,10 +406,11 @@ Resources:
                 ParameterOverrides: !Sub |
                   {
                     "Namespace": "${Namespace}",
-                    "DomainName": "/communitypatch/${Namespace}/domain_name",
-                    "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
+                    "DomainName": "${DomainName}",
+                    "HostedZoneId": "${HostedZoneId}"
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "ContributorsTableName": "/communitypatch/${Namespace}/contributors_table_name"
+                    "AppleClientId": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "AppleIdLoginClientId"]},
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
               RunOrder: 1
 
@@ -475,10 +433,11 @@ Resources:
                 ParameterOverrides: !Sub |
                   {
                     "Namespace": "${Namespace}",
-                    "DomainName": "/communitypatch/${Namespace}/domain_name",
-                    "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
+                    "DomainName": "${DomainName}",
+                    "HostedZoneId": "${HostedZoneId}"
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "ContributorsTableName": "/communitypatch/${Namespace}/contributors_table_name"
+                    "AppleClientId": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "AppleIdLoginClientId"]},
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
               RunOrder: 1
 
@@ -501,18 +460,19 @@ Resources:
                 ParameterOverrides: !Sub |
                   {
                     "Namespace": "${Namespace}",
-                    "DomainName": "/communitypatch/${Namespace}/domain_name",
-                    "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
+                    "DomainName": "${DomainName}",
+                    "HostedZoneId": "${HostedZoneId}"
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "ContributorsTableName": "/communitypatch/${Namespace}/contributors_table_name"
+                    "AppleClientId": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "AppleIdLoginClientId"]},
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
               RunOrder: 1
 
 
-            - Name: US2-Patch-API
+            - Name: US2-Titles-API
               Region: us-east-2
               InputArtifacts:
-                - Name: PatchApiBuildArtifact
+                - Name: TitlesApiBuildArtifact
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -523,22 +483,21 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
-                StackName: !Sub ${Namespace}-communitypatch-patch-api
-                TemplatePath: 'PatchApiBuildArtifact::packaged-patch-api-us-east-2.yaml'
+                StackName: !Sub ${Namespace}-communitypatch-titles-api
+                TemplatePath: 'TitlesApiBuildArtifact::packaged-titles-api-us-east-2.yaml'
                 ParameterOverrides: !Sub |
                   {
-                    "DomainName": "/communitypatch/${Namespace}/domain_name",
-                    "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
+                    "DomainName": "${DomainName}",
+                    "HostedZoneId": "${HostedZoneId}"
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "TitlesBucketName": "/communitypatch/${Namespace}/titles_bucket_name",
-                    "TitlesTableName": "/communitypatch/${Namespace}/titles_table_name"
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
               RunOrder: 2
 
-            - Name: EU-Patch-API
+            - Name: EU-Titles-API
               Region: eu-central-1
               InputArtifacts:
-                - Name: PatchApiBuildArtifact
+                - Name: TitlesApiBuildArtifact
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -549,22 +508,21 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
-                StackName: !Sub ${Namespace}-communitypatch-patch-api
-                TemplatePath: 'PatchApiBuildArtifact::packaged-patch-api-eu-central-1.yaml'
+                StackName: !Sub ${Namespace}-communitypatch-titles-api
+                TemplatePath: 'TitlesApiBuildArtifact::packaged-titles-api-eu-central-1.yaml'
                 ParameterOverrides: !Sub |
                   {
-                    "DomainName": "/communitypatch/${Namespace}/domain_name",
-                    "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
+                    "DomainName": "${DomainName}",
+                    "HostedZoneId": "${HostedZoneId}"
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "TitlesBucketName": "/communitypatch/${Namespace}/titles_bucket_name",
-                    "TitlesTableName": "/communitypatch/${Namespace}/titles_table_name"
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
               RunOrder: 2
 
-            - Name: AUS-Patch-API
+            - Name: AUS-Titles-API
               Region: ap-southeast-2
               InputArtifacts:
-                - Name: PatchApiBuildArtifact
+                - Name: TitlesApiBuildArtifact
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -575,15 +533,14 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
-                StackName: !Sub ${Namespace}-communitypatch-patch-api
-                TemplatePath: 'PatchApiBuildArtifact::packaged-patch-api-ap-southeast-2.yaml'
+                StackName: !Sub ${Namespace}-communitypatch-titles-api
+                TemplatePath: 'TitlesApiBuildArtifact::packaged-titles-api-ap-southeast-2.yaml'
                 ParameterOverrides: !Sub |
                   {
-                    "DomainName": "/communitypatch/${Namespace}/domain_name",
-                    "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
+                    "DomainName": "${DomainName}",
+                    "HostedZoneId": "${HostedZoneId}"
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "TitlesBucketName": "/communitypatch/${Namespace}/titles_bucket_name",
-                    "TitlesTableName": "/communitypatch/${Namespace}/titles_table_name"
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
               RunOrder: 2
 
@@ -605,11 +562,10 @@ Resources:
                 TemplatePath: 'JamfApiBuildArtifact::packaged-jamf-api-us-east-2.yaml'
                 ParameterOverrides: !Sub |
                   {
-                    "DomainName": "/communitypatch/${Namespace}/domain_name",
-                    "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
+                    "DomainName": "${DomainName}",
+                    "HostedZoneId": "${HostedZoneId}"
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "TitlesBucketName": "/communitypatch/${Namespace}/titles_bucket_name",
-                    "TitlesTableName": "/communitypatch/${Namespace}/titles_table_name"
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
               RunOrder: 3
 
@@ -631,11 +587,10 @@ Resources:
                 TemplatePath: 'JamfApiBuildArtifact::packaged-jamf-api-eu-central-1.yaml'
                 ParameterOverrides: !Sub |
                   {
-                    "DomainName": "/communitypatch/${Namespace}/domain_name",
-                    "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
+                    "DomainName": "${DomainName}",
+                    "HostedZoneId": "${HostedZoneId}"
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "TitlesBucketName": "/communitypatch/${Namespace}/titles_bucket_name",
-                    "TitlesTableName": "/communitypatch/${Namespace}/titles_table_name"
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
               RunOrder: 3
 
@@ -657,11 +612,10 @@ Resources:
                 TemplatePath: 'JamfApiBuildArtifact::packaged-jamf-api-ap-southeast-2.yaml'
                 ParameterOverrides: !Sub |
                   {
-                    "DomainName": "/communitypatch/${Namespace}/domain_name",
-                    "HostedZoneId": "/communitypatch/${Namespace}/hosted_zone_id",
+                    "DomainName": "${DomainName}",
+                    "HostedZoneId": "${HostedZoneId}"
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
-                    "TitlesBucketName": "/communitypatch/${Namespace}/titles_bucket_name",
-                    "TitlesTableName": "/communitypatch/${Namespace}/titles_table_name"
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
               RunOrder: 3
 
