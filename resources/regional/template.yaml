@@ -34,7 +34,7 @@ Resources:
   DynamoDBStreamArnLookup:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/stream_processor
+      CodeUri: ./src/dynamodb_stream_arn_lookup
       Policies:
         - Statement:
           - Effect: Allow

@@ -350,6 +350,7 @@ Resources:
               Region: us-east-2
               InputArtifacts:
                 - Name: ResourcesBuildArtifact
+                - Name: GlobalTablesArtifact
               OutputArtifacts:
                 - Name: USResourcesArtifact
               ActionTypeId:
@@ -378,6 +379,7 @@ Resources:
               Region: eu-central-1
               InputArtifacts:
                 - Name: ResourcesBuildArtifact
+                - Name: GlobalTablesArtifact
               OutputArtifacts:
                 - Name: EUResourcesArtifact
               ActionTypeId:
@@ -406,6 +408,7 @@ Resources:
               Region: ap-southeast-2
               InputArtifacts:
                 - Name: ResourcesBuildArtifact
+                - Name: GlobalTablesArtifact
               OutputArtifacts:
                 - Name: AUSResourcesArtifact
               ActionTypeId:
@@ -436,6 +439,8 @@ Resources:
               Region: us-east-2
               InputArtifacts:
                 - Name: ContributorsApiBuildArtifact
+                - Name: CognitoArtifact
+                - Name: GlobalTablesArtifact
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -463,6 +468,8 @@ Resources:
               Region: eu-central-1
               InputArtifacts:
                 - Name: ContributorsApiBuildArtifact
+                - Name: CognitoArtifact
+                - Name: GlobalTablesArtifact
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -490,6 +497,8 @@ Resources:
               Region: ap-southeast-2
               InputArtifacts:
                 - Name: ContributorsApiBuildArtifact
+                - Name: CognitoArtifact
+                - Name: GlobalTablesArtifact
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -518,6 +527,8 @@ Resources:
               Region: us-east-2
               InputArtifacts:
                 - Name: TitlesApiBuildArtifact
+                - Name: CognitoArtifact
+                - Name: GlobalTablesArtifact
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -543,6 +554,8 @@ Resources:
               Region: eu-central-1
               InputArtifacts:
                 - Name: TitlesApiBuildArtifact
+                - Name: CognitoArtifact
+                - Name: GlobalTablesArtifact
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -568,6 +581,8 @@ Resources:
               Region: ap-southeast-2
               InputArtifacts:
                 - Name: TitlesApiBuildArtifact
+                - Name: CognitoArtifact
+                - Name: GlobalTablesArtifact
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -593,6 +608,8 @@ Resources:
               Region: us-east-2
               InputArtifacts:
                 - Name: JamfApiBuildArtifact
+                - Name: CognitoArtifact
+                - Name: GlobalTablesArtifact
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -618,6 +635,8 @@ Resources:
               Region: eu-central-1
               InputArtifacts:
                 - Name: JamfApiBuildArtifact
+                - Name: CognitoArtifact
+                - Name: GlobalTablesArtifact
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -643,6 +662,8 @@ Resources:
               Region: ap-southeast-2
               InputArtifacts:
                 - Name: JamfApiBuildArtifact
+                - Name: CognitoArtifact
+                - Name: GlobalTablesArtifact
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
