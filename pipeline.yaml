@@ -209,6 +209,28 @@ Resources:
 
         - Name: Build
           Actions:
+            - Name: Resources
+              InputArtifacts:
+                  - Name: SourceArtifact
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              OutputArtifacts:
+                - Name: ResourcesBuildArtifact
+              Configuration:
+                ProjectName: !Ref BuildProject
+                EnvironmentVariables: >
+                  [
+                    {
+                      "name": "SOURCE_DIR",
+                      "type": "PLAINTEXT",
+                      "value": "resources/regional"
+                    }
+                  ]
+              RunOrder: 1
+
             - Name: Contributors-API
               InputArtifacts:
                   - Name: SourceArtifact
@@ -327,7 +349,7 @@ Resources:
             - Name: US2-Resources
               Region: us-east-2
               InputArtifacts:
-                - Name: SourceArtifact
+                - Name: ResourcesBuildArtifact
               OutputArtifacts:
                 - Name: USResourcesArtifact
               ActionTypeId:
@@ -341,12 +363,13 @@ Resources:
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
                 StackName: !Sub ${Namespace}-communitypatch-resources
-                TemplatePath: 'SourceArtifact::resources/regional/template.yaml'
+                TemplatePath: 'ResourcesBuildArtifact::packaged-us-east-2.yaml'
                 ParameterOverrides: !Sub |
                   {
                     "Namespace": "${Namespace}",
                     "DomainName": "${DomainName}",
-                    "HostedZoneId": "${HostedZoneId}"
+                    "HostedZoneId": "${HostedZoneId}",
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
                 OutputFileName: outputs.json
               RunOrder: 2
@@ -354,7 +377,7 @@ Resources:
             - Name: EU-Resources
               Region: eu-central-1
               InputArtifacts:
-                - Name: SourceArtifact
+                - Name: ResourcesBuildArtifact
               OutputArtifacts:
                 - Name: EUResourcesArtifact
               ActionTypeId:
@@ -368,12 +391,13 @@ Resources:
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
                 StackName: !Sub ${Namespace}-communitypatch-resources
-                TemplatePath: 'SourceArtifact::resources/regional/template.yaml'
+                TemplatePath: 'ResourcesBuildArtifact::packaged-eu-central-1.yaml'
                 ParameterOverrides: !Sub |
                   {
                     "Namespace": "${Namespace}",
                     "DomainName": "${DomainName}",
-                    "HostedZoneId": "${HostedZoneId}"
+                    "HostedZoneId": "${HostedZoneId}",
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
                 OutputFileName: outputs.json
               RunOrder: 2
@@ -381,7 +405,7 @@ Resources:
             - Name: AUS-Resources
               Region: ap-southeast-2
               InputArtifacts:
-                - Name: SourceArtifact
+                - Name: ResourcesBuildArtifact
               OutputArtifacts:
                 - Name: AUSResourcesArtifact
               ActionTypeId:
@@ -395,12 +419,13 @@ Resources:
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
                 StackName: !Sub ${Namespace}-communitypatch-resources
-                TemplatePath: 'SourceArtifact::resources/regional/template.yaml'
+                TemplatePath: 'ResourcesBuildArtifact::packaged-ap-southeast-2.yaml'
                 ParameterOverrides: !Sub |
                   {
                     "Namespace": "${Namespace}",
                     "DomainName": "${DomainName}",
-                    "HostedZoneId": "${HostedZoneId}"
+                    "HostedZoneId": "${HostedZoneId}",
+                    "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
                 OutputFileName: outputs.json
               RunOrder: 2
@@ -421,7 +446,7 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
-                StackName: !Sub ${Namespace}-communitypatch-contributors-api
+                StackName: !Sub ${Namespace}-communitypatch-api-contributors
                 TemplatePath: 'ContributorsApiBuildArtifact::packaged-us-east-2.yaml'
                 ParameterOverrides: !Sub |
                   {
@@ -448,7 +473,7 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
-                StackName: !Sub ${Namespace}-communitypatch-contributors-api
+                StackName: !Sub ${Namespace}-communitypatch-api-contributors
                 TemplatePath: 'ContributorsApiBuildArtifact::packaged-eu-central-1.yaml'
                 ParameterOverrides: !Sub |
                   {
@@ -475,7 +500,7 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
-                StackName: !Sub ${Namespace}-communitypatch-contributors-api
+                StackName: !Sub ${Namespace}-communitypatch-api-contributors
                 TemplatePath: 'ContributorsApiBuildArtifact::packaged-ap-southeast-2.yaml'
                 ParameterOverrides: !Sub |
                   {
@@ -503,7 +528,7 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
-                StackName: !Sub ${Namespace}-communitypatch-titles-api
+                StackName: !Sub ${Namespace}-communitypatch-api-titles
                 TemplatePath: 'TitlesApiBuildArtifact::packaged-us-east-2.yaml'
                 ParameterOverrides: !Sub |
                   {
@@ -528,7 +553,7 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
-                StackName: !Sub ${Namespace}-communitypatch-titles-api
+                StackName: !Sub ${Namespace}-communitypatch-api-titles
                 TemplatePath: 'TitlesApiBuildArtifact::packaged-eu-central-1.yaml'
                 ParameterOverrides: !Sub |
                   {
@@ -553,7 +578,7 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
-                StackName: !Sub ${Namespace}-communitypatch-titles-api
+                StackName: !Sub ${Namespace}-communitypatch-api-titles
                 TemplatePath: 'TitlesApiBuildArtifact::packaged-ap-southeast-2.yaml'
                 ParameterOverrides: !Sub |
                   {
@@ -578,7 +603,7 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
-                StackName: !Sub ${Namespace}-communitypatch-jamf-api
+                StackName: !Sub ${Namespace}-communitypatch-api-jamf
                 TemplatePath: 'JamfApiBuildArtifact::packaged-us-east-2.yaml'
                 ParameterOverrides: !Sub |
                   {
@@ -603,7 +628,7 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
-                StackName: !Sub ${Namespace}-communitypatch-jamf-api
+                StackName: !Sub ${Namespace}-communitypatch-api-jamf
                 TemplatePath: 'JamfApiBuildArtifact::packaged-eu-central-1.yaml'
                 ParameterOverrides: !Sub |
                   {
@@ -628,7 +653,7 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationRole.Arn
-                StackName: !Sub ${Namespace}-communitypatch-jamf-api
+                StackName: !Sub ${Namespace}-communitypatch-api-jamf
                 TemplatePath: 'JamfApiBuildArtifact::packaged-ap-southeast-2.yaml'
                 ParameterOverrides: !Sub |
                   {

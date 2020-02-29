@@ -4,7 +4,7 @@ import os
 
 import boto3
 
-NAMESPACE = os.getenv("NAMESPACE")
+EVENT_BUS = f"{os.getenv('NAMESPACE')}-communitypatch"
 
 events_client = boto3.client("events")
 
@@ -22,7 +22,7 @@ def lambda_handler(event, context):
                 "Resources": [table_arn],
                 "DetailType": "Table Change",
                 "Detail": json.dumps(record),
-                "EventBusName": f"{NAMESPACE}-communitypath",
+                "EventBusName": EVENT_BUS,
             }
         )
 

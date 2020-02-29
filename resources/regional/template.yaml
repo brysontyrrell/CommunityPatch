@@ -32,50 +32,14 @@ Resources:
 # Table Stream ARN Lookup
 
   DynamoDBStreamArnLookup:
-    Type: AWS::Lambda::Function
+    Type: AWS::Serverless::Function
     Properties:
-      Runtime: python3.7
-      Handler: index.lambda_handler
-      Role: !GetAtt DynamoDBStreamArnLookupRole.Arn
-      Code:
-        ZipFile: |
-          import boto3
-          import cfnresponse
-
-          client = boto3.client('dynamodb')
-
-          def lambda_handler(event, context):
-              try:
-                  table_name = event['ResourceProperties']['TableName']
-                  response = client.describe_table(TableName=table_name)
-                  stream_arn = response['Table']['LatestStreamArn']
-                  cfnresponse.send(
-                      event, context, cfnresponse.SUCCESS, {'Arn': stream_arn}
-                  )
-              except Exception as error:
-                  cfnresponse.send(
-                      event, context, cfnresponse.FAILED, {'Error': type(error).__name__, 'Message': str(error)}
-                  )
-
-  DynamoDBStreamArnLookupRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      CodeUri: ./src/stream_processor
       Policies:
-        - PolicyName: DescribeDynamoDB
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action: dynamodb:Describe*
-                Resource: '*'
+        - Statement:
+          - Effect: Allow
+            Action: dynamodb:Describe*
+            Resource: '*'
 
   CommunityPatchTableStream:
     Type: AWS::CloudFormation::CustomResource
@@ -96,9 +60,9 @@ Resources:
       CodeUri: ./src/stream_processor
       Policies:
         - Statement:
-            - Effect: Allow
-              Action: events:PutEvents
-              Resource: !GetAtt DataEvents.Arn
+          - Effect: Allow
+            Action: events:PutEvents
+            Resource: !GetAtt DataEvents.Arn
       Events:
         DeploymentsTableEvent:
           Type: DynamoDB
