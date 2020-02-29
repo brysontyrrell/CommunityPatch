@@ -54,7 +54,7 @@ Resources:
     Properties:
       Name: !Sub ${Namespace}-communitypatch
 
-  TableStreamProcessor:
+  TableEvents:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/stream_processor
@@ -67,7 +67,7 @@ Resources:
         DeploymentsTableEvent:
           Type: DynamoDB
           Properties:
-            Stream: !Ref CommunityPatchTableStream
+            Stream: !GetAtt CommunityPatchTableStream.Arn
             StartingPosition: TRIM_HORIZON
             BatchSize: 10
 
