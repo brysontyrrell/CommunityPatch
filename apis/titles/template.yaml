@@ -5,19 +5,16 @@ Description: Jamf Pro endpoints for Community Patch
 Parameters:
 
   DomainName:
-    Type: AWS::SSM::Parameter::Value<String>
+    Type: String
 
   HostedZoneId:
-    Type: AWS::SSM::Parameter::Value<String>
+    Type: String
 
   RegionalCertificateArn:
     Type: AWS::SSM::Parameter::Value<String>
 
-  TitlesBucketName:
-    Type: AWS::SSM::Parameter::Value<String>
-
-  TitlesTableName:
-    Type: AWS::SSM::Parameter::Value<String>
+  CommunityPatchTableName:
+    Type: String
 
 # SAM Globals
 
