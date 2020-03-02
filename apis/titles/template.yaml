@@ -25,8 +25,7 @@ Globals:
     Tracing: PassThrough
     Environment:
       Variables:
-        TITLES_BUCKET: !Ref TitlesBucketName
-        TITLES_TABLE: !Ref TitlesTableName
+        COMMUNITY_PATCH_TABLE: !Ref CommunityPatchTableName
 
 Resources:
 
@@ -82,9 +81,7 @@ Resources:
       CodeUri: ./src/post_title
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref TitlesTableName
-        - S3CrudPolicy:
-            BucketName: !Ref TitlesBucketName
+            TableName: !Ref CommunityPatchTableName
       Events:
         CreateTitle:
           Type: Api
@@ -100,9 +97,7 @@ Resources:
       CodeUri: ./src/post_delete_version
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref TitlesTableName
-        - S3CrudPolicy:
-            BucketName: !Ref TitlesBucketName
+            TableName: !Ref CommunityPatchTableName
       Events:
         AddVersion:
           Type: Api
@@ -125,9 +120,7 @@ Resources:
       CodeUri: ./src/delete_title
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref TitlesTableName
-        - S3CrudPolicy:
-            BucketName: !Ref TitlesBucketName
+            TableName: !Ref CommunityPatchTableName
       Events:
         DeleteTitle:
           Type: Api

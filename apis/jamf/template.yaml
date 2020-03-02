@@ -25,19 +25,17 @@ Globals:
     Tracing: PassThrough
     Environment:
       Variables:
-        TITLES_BUCKET: !Ref TitlesBucketName
-        TITLES_TABLE: !Ref TitlesTableName
+        COMMUNITY_PATCH_TABLE: !Ref CommunityPatchTableName
 
 Resources:
 
-# API Gateway
+# HTTP API
 
-  ApiGateway:
-    Type: AWS::Serverless::Api
+  Api:
+    Type: AWS::Serverless::HttpApi
     Properties:
       StageName: Prod
       EndpointConfiguration: REGIONAL
-      TracingEnabled: true
 
   ApiCustomDomain:
     Type: AWS::ApiGateway::DomainName
@@ -52,11 +50,11 @@ Resources:
     Type: AWS::ApiGateway::BasePathMapping
     Properties:
       DomainName: !Ref ApiCustomDomain
-      RestApiId: !Ref ApiGateway
+      RestApiId: !Ref Api
       Stage: Prod
     DependsOn:
-      - ApiGateway
-      - ApiGatewayProdStage
+      - Api
+      - ApiProdStage
       - ApiCustomDomain
 
   RegionalRoute53Record:
@@ -79,7 +77,7 @@ Resources:
       CodeUri: ./src/get_software
       Policies:
         - DynamoDBReadPolicy:
-            TableName: !Ref TitlesTableName
+            TableName: !Ref CommunityPatchTableName
       Events:
         GetAllSoftware:
           Type: Api
@@ -87,22 +85,22 @@ Resources:
             Path: /v1/{contributor}/software
             Method: get
             RestApiId:
-                Ref: ApiGateway
+                Ref: Api
         GetSelectSoftware:
           Type: Api
           Properties:
             Path: /v1/{contributor}/software/{titles}
             Method: get
             RestApiId:
-                Ref: ApiGateway
+                Ref: Api
 
   GetPatch:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/get_patch
       Policies:
-        - S3ReadPolicy:
-            BucketName: !Ref TitlesBucketName
+        - DynamoDBReadPolicy:
+            TableName: !Ref CommunityPatchTableName
       Events:
         GetPatch:
           Type: Api
@@ -110,4 +108,4 @@ Resources:
             Path: /v1/{contributor}/patch/{title}
             Method: get
             RestApiId:
-                Ref: ApiGateway
+                Ref: Api
