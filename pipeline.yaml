@@ -457,7 +457,7 @@ Resources:
                   {
                     "Namespace": "${Namespace}",
                     "DomainName": "${DomainName}",
-                    "HostedZoneId": "${HostedZoneId}"
+                    "HostedZoneId": "${HostedZoneId}",
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
                     "AppleClientId": { "Fn::GetParam" : ["CognitoArtifact", "outputs.json", "AppleIdLoginClientId"]},
                     "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
@@ -486,7 +486,7 @@ Resources:
                   {
                     "Namespace": "${Namespace}",
                     "DomainName": "${DomainName}",
-                    "HostedZoneId": "${HostedZoneId}"
+                    "HostedZoneId": "${HostedZoneId}",
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
                     "AppleClientId": { "Fn::GetParam" : ["CognitoArtifact", "outputs.json", "AppleIdLoginClientId"]},
                     "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
@@ -515,7 +515,7 @@ Resources:
                   {
                     "Namespace": "${Namespace}",
                     "DomainName": "${DomainName}",
-                    "HostedZoneId": "${HostedZoneId}"
+                    "HostedZoneId": "${HostedZoneId}",
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
                     "AppleClientId": { "Fn::GetParam" : ["CognitoArtifact", "outputs.json", "AppleIdLoginClientId"]},
                     "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
@@ -544,7 +544,7 @@ Resources:
                 ParameterOverrides: !Sub |
                   {
                     "DomainName": "${DomainName}",
-                    "HostedZoneId": "${HostedZoneId}"
+                    "HostedZoneId": "${HostedZoneId}",
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
                     "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
@@ -571,7 +571,7 @@ Resources:
                 ParameterOverrides: !Sub |
                   {
                     "DomainName": "${DomainName}",
-                    "HostedZoneId": "${HostedZoneId}"
+                    "HostedZoneId": "${HostedZoneId}",
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
                     "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
@@ -598,7 +598,7 @@ Resources:
                 ParameterOverrides: !Sub |
                   {
                     "DomainName": "${DomainName}",
-                    "HostedZoneId": "${HostedZoneId}"
+                    "HostedZoneId": "${HostedZoneId}",
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
                     "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
@@ -625,7 +625,7 @@ Resources:
                 ParameterOverrides: !Sub |
                   {
                     "DomainName": "${DomainName}",
-                    "HostedZoneId": "${HostedZoneId}"
+                    "HostedZoneId": "${HostedZoneId}",
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
                     "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
@@ -652,7 +652,7 @@ Resources:
                 ParameterOverrides: !Sub |
                   {
                     "DomainName": "${DomainName}",
-                    "HostedZoneId": "${HostedZoneId}"
+                    "HostedZoneId": "${HostedZoneId}",
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
                     "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
@@ -679,7 +679,7 @@ Resources:
                 ParameterOverrides: !Sub |
                   {
                     "DomainName": "${DomainName}",
-                    "HostedZoneId": "${HostedZoneId}"
+                    "HostedZoneId": "${HostedZoneId}",
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
                     "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
