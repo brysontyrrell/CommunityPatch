@@ -12,19 +12,66 @@ Resources:
       BillingMode: PAY_PER_REQUEST
 
       AttributeDefinitions:
-        - AttributeName: pk
+        - AttributeName: contributor_id
           AttributeType: S
-        - AttributeName: sk
+        - AttributeName: type
           AttributeType: S
+        - AttributeName: search_index
+          AttributeType: S
+        - AttributeName: title_id
+          AttributeType: S
+        - AttributeName: token_id
+          AttributeType: S
+        - AttributeName: summary
+          AttributeType: M
 
       KeySchema:
-        - AttributeName: pk
+        - AttributeName: contributor_id
           KeyType: HASH
-        - AttributeName: sk
+        - AttributeName: type
           KeyType: RANGE
+
+      GlobalSecondaryIndexes:
+        - IndexName: ContributorSummaries
+          KeySchema:
+            - AttributeName: contributor_id
+              KeyType: HASH
+            - AttributeName: title_id
+              KeyType: RANGE
+          Projection:
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              - summary
+
+        - IndexName: TitleSearch
+          KeySchema:
+              - AttributeName: search_index
+                KeyType: HASH
+              - AttributeName: title_id
+                KeyType: RANGE
+          Projection:
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              - contributor_id
+              - summary
+
+        - IndexName: TokenQuery
+          KeySchema:
+              - AttributeName: search_index
+                KeyType: HASH
+              - AttributeName: token_id
+                KeyType: RANGE
+          Projection:
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              - contributor_id
 
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
+
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
 
 # Stack Outputs
 
