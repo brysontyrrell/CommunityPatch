@@ -35,7 +35,6 @@ Resources:
     Type: AWS::Serverless::HttpApi
     Properties:
       StageName: Prod
-      EndpointConfiguration: REGIONAL
 
   ApiCustomDomain:
     Type: AWS::ApiGateway::DomainName
@@ -80,19 +79,17 @@ Resources:
             TableName: !Ref CommunityPatchTableName
       Events:
         GetAllSoftware:
-          Type: Api
+          Type: HttpApi
           Properties:
             Path: /v1/{contributor}/software
             Method: get
-            RestApiId:
-                Ref: Api
+            ApiId: !Ref Api
         GetSelectSoftware:
-          Type: Api
+          Type: HttpApi
           Properties:
             Path: /v1/{contributor}/software/{titles}
             Method: get
-            RestApiId:
-                Ref: Api
+            RestApiId: !Ref Api
 
   GetPatch:
     Type: AWS::Serverless::Function
@@ -103,9 +100,8 @@ Resources:
             TableName: !Ref CommunityPatchTableName
       Events:
         GetPatch:
-          Type: Api
+          Type: HttpApi
           Properties:
             Path: /v1/{contributor}/patch/{title}
             Method: get
-            RestApiId:
-                Ref: Api
+            ApiId: !Ref Api
