@@ -22,10 +22,6 @@ Resources:
           AttributeType: S
         - AttributeName: token_id
           AttributeType: S
-        - AttributeName: summary
-          AttributeType: M
-        - AttributeName: ttl
-          AttributeType: N
 
       KeySchema:
         - AttributeName: contributor_id
@@ -47,10 +43,10 @@ Resources:
 
         - IndexName: TitleSearch
           KeySchema:
-              - AttributeName: search_index
-                KeyType: HASH
-              - AttributeName: title_id
-                KeyType: RANGE
+            - AttributeName: search_index
+              KeyType: HASH
+            - AttributeName: title_id
+              KeyType: RANGE
           Projection:
             ProjectionType: INCLUDE
             NonKeyAttributes:
@@ -59,10 +55,10 @@ Resources:
 
         - IndexName: TokenQuery
           KeySchema:
-              - AttributeName: search_index
-                KeyType: HASH
-              - AttributeName: token_id
-                KeyType: RANGE
+            - AttributeName: search_index
+              KeyType: HASH
+            - AttributeName: token_id
+              KeyType: RANGE
           Projection:
             ProjectionType: INCLUDE
             NonKeyAttributes:
