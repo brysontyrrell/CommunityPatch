@@ -89,7 +89,7 @@ Resources:
           Properties:
             Path: /v1/{contributor}/software/{titles}
             Method: get
-            RestApiId: !Ref Api
+            ApiId: !Ref Api
 
   GetPatch:
     Type: AWS::Serverless::Function
