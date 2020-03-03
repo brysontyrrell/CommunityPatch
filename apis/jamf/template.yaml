@@ -37,13 +37,12 @@ Resources:
       StageName: Prod
 
   ApiCustomDomain:
-    Type: AWS::ApiGateway::DomainName
+    Type: AWS::ApiGatewayV2::DomainName
     Properties:
       DomainName: !Sub 'jamf.${DomainName}'
-      RegionalCertificateArn: !Ref RegionalCertificateArn
-      EndpointConfiguration:
-        Types:
-          - REGIONAL
+      DomainNameConfigurations:
+        CertificateArn: !Ref RegionalCertificateArn
+        EndpointType: REGIONAL
 
   ApiBasePath:
     Type: AWS::ApiGateway::BasePathMapping
