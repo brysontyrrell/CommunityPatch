@@ -1,6 +1,4 @@
 *.aws-sam/
 notes.rst
-deployment.yaml
 docs/_build/
-src/web_content/
-build_env.txt
+*samconfig.toml

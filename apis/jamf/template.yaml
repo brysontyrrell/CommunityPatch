@@ -33,8 +33,6 @@ Resources:
 
   Api:
     Type: AWS::Serverless::HttpApi
-    Properties:
-      StageName: Prod
 
   ApiCustomDomain:
     Type: AWS::ApiGatewayV2::DomainName
@@ -44,16 +42,12 @@ Resources:
         - CertificateArn: !Ref RegionalCertificateArn
           EndpointType: REGIONAL
 
-  ApiBasePath:
-    Type: AWS::ApiGateway::BasePathMapping
+  ApiMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
     Properties:
       DomainName: !Ref ApiCustomDomain
-      RestApiId: !Ref Api
-      Stage: Prod
-    DependsOn:
-      - Api
-      - ApiProdStage
-      - ApiCustomDomain
+      ApiId: !Ref Api
+      Stage: "$default"
 
   RegionalRoute53Record:
     Type: AWS::Route53::RecordSet
