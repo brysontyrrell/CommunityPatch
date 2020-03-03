@@ -24,6 +24,8 @@ Resources:
           AttributeType: S
         - AttributeName: summary
           AttributeType: M
+        - AttributeName: ttl
+          AttributeType: N
 
       KeySchema:
         - AttributeName: contributor_id
