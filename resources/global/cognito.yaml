@@ -27,7 +27,15 @@ Resources:
 
 # Cognito Resource Servers
 
-
+  ContributorsApi:
+    Type: AWS::Cognito::UserPoolResourceServer
+    Properties:
+      Identifier: contributors-api
+      Name: WorkshopApi
+      UserPoolId: !Ref UserPool
+      Scopes:
+        - ScopeName: full_access
+          ScopeDescription: Default scope
 
 # Cognito Clients
 
@@ -38,15 +46,21 @@ Resources:
       RefreshTokenValidity: 30
       UserPoolId: !Ref UserPool
       CallbackURLs:
-        - !Sub "https://contributors.${DomainName}/oauth2/appleid/tokens"
+        - !Sub "https://contributors.${DomainName}/oauth2/appleid/token"
         - !Sub "https://auth.${DomainName}/oauth2/idpresponse"
+        - !Sub "https://${DomainName}"
       LogoutURLs:
         - !Sub "https://contributors.${DomainName}/oauth2/appleid/logout"
       AllowedOAuthFlowsUserPoolClient: True
       AllowedOAuthFlows:
         - code
+        - implicit
       AllowedOAuthScopes:
         - openid
+        - contributors-api/full_access
+
+# Auth Code Sign In URL: https://auth.{DOMAIN}/login?response_type=code&client_id={CLIENT_ID}&redirect_uri=https://contributors.${DOMAIN}/oauth2/appleid/token
+# Implicit Sign In URL: https://auth.{DOMAIN}/login?response_type=token&client_id={CLIENT_ID}&redirect_uri=https://{DOMAIN}
 
 # Stack Outputs
 
