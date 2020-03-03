@@ -41,8 +41,8 @@ Resources:
     Properties:
       DomainName: !Sub 'jamf.${DomainName}'
       DomainNameConfigurations:
-        CertificateArn: !Ref RegionalCertificateArn
-        EndpointType: REGIONAL
+        - CertificateArn: !Ref RegionalCertificateArn
+          EndpointType: REGIONAL
 
   ApiBasePath:
     Type: AWS::ApiGateway::BasePathMapping
