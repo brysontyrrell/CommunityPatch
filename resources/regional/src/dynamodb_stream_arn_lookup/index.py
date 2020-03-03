@@ -7,18 +7,22 @@ client = boto3.client("dynamodb")
 
 
 def lambda_handler(event, context):
-    try:
-        table_name = event["ResourceProperties"]["TableName"]
-        response = client.describe_table(TableName=table_name)
-        stream_arn = response["Table"]["LatestStreamArn"]
-        cfnresponse(event, context, "SUCCESS", {"Arn": stream_arn})
-    except Exception as error:
-        cfnresponse(
-            event,
-            context,
-            "FAILED",
-            {"Error": type(error).__name__, "Message": str(error)},
-        )
+    stream_arn = ""
+
+    if event["RequestType"] != "Delete":
+        try:
+            table_name = event["ResourceProperties"]["TableName"]
+            response = client.describe_table(TableName=table_name)
+            stream_arn = response["Table"]["LatestStreamArn"]
+        except Exception as error:
+            cfnresponse(
+                event,
+                context,
+                "FAILED",
+                {"Error": type(error).__name__, "Message": str(error)},
+            )
+
+    cfnresponse(event, context, "SUCCESS", {"Arn": stream_arn})
 
 
 def cfnresponse(
