@@ -148,3 +148,23 @@ Resources:
               Authorizer: CognitoAuthorizer
               AuthorizationScopes:
                 - contributors-api/full_access
+
+  InvalidateApiToken:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/invalidate_api_token
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CommunityPatchTableName
+      Events:
+        ApiContributorRegistration:
+          Type: Api
+          Properties:
+            Path: /v1/tokens/{token_id}/invalidate
+            Method: post
+            RestApiId:
+              Ref: ApiGateway
+            Auth:
+              Authorizer: CognitoAuthorizer
+              AuthorizationScopes:
+                - contributors-api/full_access
