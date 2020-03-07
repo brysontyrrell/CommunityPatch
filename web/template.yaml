@@ -1,0 +1,78 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+
+  DomainName:
+    Type: String
+
+  HostedZoneId:
+    Type: String
+
+  RegionalCertificateArn:
+    Type: AWS::SSM::Parameter::Value<String>
+
+Resources:
+
+  WebContentBucket:
+    Type: AWS::S3::Bucket
+
+  WebContentBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebContentBucket
+      PolicyDocument:
+        Statement:
+          - Action: s3:GetObject
+            Effect: Allow
+            Resource: !Sub '${WebContentBucket.Arn}/*'
+            Principal:
+              AWS: !Sub 'arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}'
+
+  CloudFrontOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub '${AWS::StackName}-origin-access-identity'
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+
+        Aliases:
+          - !Ref DomainName
+
+        ViewerCertificate:
+          AcmCertificateArn: !Ref RegionalCertificateArn
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.1_2016
+
+        DefaultCacheBehavior:
+          Compress: true
+          DefaultTTL: 300
+          ForwardedValues:
+            QueryString: true
+          MaxTTL: 300
+          TargetOriginId: WebContentBucketOrigin
+          ViewerProtocolPolicy: https-only
+
+        Origins:
+          - DomainName: !GetAtt WebContentBucket.DomainName
+            Id: WebContentBucketOrigin
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
+
+# Route 53 Record
+
+  CloudFrontRoute53Record:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: !Ref DomainName
+      Type: A
+      HostedZoneId: !Ref HostedZoneId
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        EvaluateTargetHealth: false
+        HostedZoneId: Z2FDTNDATAQYW2
