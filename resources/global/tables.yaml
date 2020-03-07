@@ -63,6 +63,7 @@ Resources:
             ProjectionType: INCLUDE
             NonKeyAttributes:
               - contributor_id
+              - token_secret
 
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
