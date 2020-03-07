@@ -15,6 +15,9 @@ Parameters:
   RegionalCertificateArn:
     Type: AWS::SSM::Parameter::Value<String>
 
+  CognitoUserPoolArn:
+    Type: String
+
   AppleClientId:
     Type: String
 
@@ -45,6 +48,10 @@ Resources:
       StageName: Prod
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
+      Auth:
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !Ref CognitoUserPoolArn
 
   ApiCustomDomain:
     Type: AWS::ApiGateway::DomainName
@@ -80,9 +87,21 @@ Resources:
 
 # Lambda
 
+  AppleIdLogin:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/implicit_login
+      Events:
+        GetToken:
+          Type: Api
+          Properties:
+            Path: /login
+            Method: get
+            RestApiId:
+                Ref: ApiGateway
+
   Oauth2AppleIdToken:
     Type: AWS::Serverless::Function
-    Description: Creates and rotates tokens.
     Properties:
       CodeUri: ./src/oauth2_appleid_token
       Events:
@@ -94,22 +113,8 @@ Resources:
             RestApiId:
                 Ref: ApiGateway
 
-  Oauth2AppleIdLogout:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/oauth2_appleid_token
-      Events:
-        Logout:
-          Type: Api
-          Properties:
-            Path: /oauth2/appleid/logout
-            Method: get
-            RestApiId:
-                Ref: ApiGateway
-
   ApiContributorsGet:
     Type: AWS::Serverless::Function
-    Description: List contributors on CommunityPatch.
     Properties:
       CodeUri: ./src/get_contributors
       Policies:
@@ -124,3 +129,22 @@ Resources:
             RestApiId:
               Ref: ApiGateway
 
+  CreateApiToken:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/create_api_token
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CommunityPatchTableName
+      Events:
+        ApiContributorRegistration:
+          Type: Api
+          Properties:
+            Path: /v1/tokens
+            Method: post
+            RestApiId:
+              Ref: ApiGateway
+            Auth:
+              Authorizer: CognitoAuthorizer
+              AuthorizationScopes:
+                - contributors-api/full_access
