@@ -53,18 +53,6 @@ Resources:
               - contributor_id
               - summary
 
-        - IndexName: TokenQuery
-          KeySchema:
-            - AttributeName: search_index
-              KeyType: HASH
-            - AttributeName: token_id
-              KeyType: RANGE
-          Projection:
-            ProjectionType: INCLUDE
-            NonKeyAttributes:
-              - contributor_id
-              - token_secret
-
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
 
