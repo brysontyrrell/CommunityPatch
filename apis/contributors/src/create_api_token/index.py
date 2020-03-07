@@ -55,7 +55,7 @@ def create_api_token(contributor_id, expires_in=31536000):
             "token_use": "access",
             # "scope": "",
             "iss": f"https://contributors.{DOMAIN_NAME}",
-            "aud": f"https://titles.{DOMAIN_NAME}",
+            "aud": f"https://api.{DOMAIN_NAME}",
             "jti": token_id,
             "exp": expiration_time,
             "iat": issued_time,
