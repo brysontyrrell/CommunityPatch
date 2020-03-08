@@ -37,9 +37,11 @@ Resources:
       StageName: Prod
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
-#      Domain:
-#        DomainName: !Sub 'api.${DomainName}'
-#        CertificateArn: !Ref RegionalCertificateArn
+      Auth:
+        DefaultAuthorizer: ApiAuthorizer
+        Authorizers:
+          ApiAuthorizer:
+            FunctionArn: !GetAtt Authorizer.Arn
 
   ApiCustomDomain:
     Type: AWS::ApiGateway::DomainName
@@ -75,10 +77,42 @@ Resources:
 
 # Lambda
 
-  PostTitle:
+  Authorizer:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/post_title
+      CodeUri: ./src/authorizer
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref CommunityPatchTableName
+
+  ReadTitles:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/read_titles
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref CommunityPatchTableName
+      Events:
+        ReadTitles:
+          Type: Api
+          Properties:
+            Path: /v1/titles
+            Method: get
+            RestApiId:
+              Ref: ApiGateway
+        ReadTitle:
+          Type: Api
+          Properties:
+            Path: /v1/titles/{title_id}
+            Method: get
+            RestApiId:
+              Ref: ApiGateway
+
+
+  CreateTitle:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/create_title
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref CommunityPatchTableName
@@ -91,10 +125,10 @@ Resources:
             RestApiId:
                 Ref: ApiGateway
 
-  PostDeleteVersion:
+  UpdateTitleVersion:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/post_delete_version
+      CodeUri: ./src/update_title_version
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref CommunityPatchTableName
@@ -102,14 +136,14 @@ Resources:
         AddVersion:
           Type: Api
           Properties:
-            Path: /api/v1/titles/{title}/versions
+            Path: /api/v1/titles/{title_id}/versions
             Method: post
             RestApiId:
               Ref: ApiGateway
         DeleteVersion:
           Type: Api
           Properties:
-            Path: /api/v1/titles/{title}/versions/{version}
+            Path: /api/v1/titles/{title_id}/versions/{version}
             Method: delete
             RestApiId:
               Ref: ApiGateway
@@ -125,7 +159,7 @@ Resources:
         DeleteTitle:
           Type: Api
           Properties:
-            Path: /api/v1/titles/{title}
+            Path: /api/v1/titles/{title_id}
             Method: delete
             RestApiId:
               Ref: ApiGateway
