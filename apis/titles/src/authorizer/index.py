@@ -58,6 +58,7 @@ def generate_policy(principal_id, effect=None, resource=None, context=None):
         }
 
     if context:
+        # Context path in API event becomes "event['requestContext']['authorizer']"
         auth_response["context"] = dict()
         for k, v in context.items():
             auth_response["context"][k] = str(v)
