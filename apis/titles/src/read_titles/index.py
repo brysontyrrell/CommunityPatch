@@ -3,6 +3,7 @@ import logging
 import os
 
 import boto3
+from boto3.dynamodb.conditions import Key
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -13,7 +14,35 @@ communitypatchtable = boto3.resource("dynamodb").Table(
 
 
 def lambda_handler(event, context):
-    return response("OK", 200)
+    # Not consistent with Cognito auth
+    authenticated_claims = event["requestContext"]["authorizer"]
+
+    if event["resource"] == "/v1/titles":
+        result = communitypatchtable.query(
+            IndexName="ContributorSummaries",
+            KeyConditionExpression=Key("contributor_id").eq(
+                authenticated_claims["sub"]
+            ),
+        )
+        return response({"titles": [i["summary"] for i in result["Items"]]}, 200)
+
+    elif event["resource"] == "/v1/titles/{title_id}":
+        title_id = event["pathParameters"]["title_id"]
+
+        result = communitypatchtable.get_item(
+            Key={
+                "contributor_id": authenticated_claims["sub"],
+                "type": f"TITLE#{title_id}",
+            }
+        )
+        try:
+            return {
+                "statusCode": 200,
+                "body": result["Item"]["body"],
+                "headers": {"Content-Type": "application/json"},
+            }
+        except KeyError:
+            return response("Not Found", 404)
 
 
 def response(message, status_code):

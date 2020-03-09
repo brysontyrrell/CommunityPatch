@@ -144,7 +144,7 @@ Resources:
         DeleteVersion:
           Type: Api
           Properties:
-            Path: /api/v1/titles/{title_id}/versions/{version}
+            Path: /v1/titles/{title_id}/versions/{version}
             Method: delete
             RestApiId:
               Ref: ApiGateway
@@ -160,7 +160,7 @@ Resources:
         DeleteTitle:
           Type: Api
           Properties:
-            Path: /api/v1/titles/{title_id}
+            Path: /v1/titles/{title_id}
             Method: delete
             RestApiId:
               Ref: ApiGateway

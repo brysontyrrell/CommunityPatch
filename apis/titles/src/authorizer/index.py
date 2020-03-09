@@ -15,11 +15,15 @@ communitypatchtable = boto3.resource("dynamodb").Table(
 
 
 def lambda_handler(event, context):
-    """Details on errors must never be provided back to the authenticating client."""
+    """Details on errors must never be provided back to the authenticating client.
+
+    Exceptions are logged, but ANY exception raised during token validation must result
+    in a generic Unauthorized response.
+    """
     token = event["authorizationToken"]
-    unverified_claims = jwt.decode(token, verify=False)
 
     try:
+        unverified_claims = jwt.decode(token, verify=False)
         token_entry = token_lookup(unverified_claims["sub"], unverified_claims["jti"])
         jwt.decode(
             token,
