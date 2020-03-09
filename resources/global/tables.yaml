@@ -20,6 +20,8 @@ Resources:
           AttributeType: S
         - AttributeName: title_id
           AttributeType: S
+        - AttributeName: alias
+          AttributeType: S
 
       KeySchema:
         - AttributeName: contributor_id
@@ -50,6 +52,17 @@ Resources:
             NonKeyAttributes:
               - contributor_id
               - summary
+
+        - IndexName: ContributorAliasLookup
+          KeySchema:
+            - AttributeName: type
+              KeyType: HASH
+            - AttributeName: alias
+              KeyType: RANGE
+          Projection:
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              - contributor_id
 
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES

@@ -63,10 +63,10 @@ Resources:
 
 # Lambda
 
-  GetSoftware:
+  ReadTitles:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/get_software
+      CodeUri: ./src/read_titles
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref CommunityPatchTableName
@@ -74,27 +74,18 @@ Resources:
         GetAllSoftware:
           Type: HttpApi
           Properties:
-            Path: /v1/{contributor}/software
+            Path: /v1/{contributor_id}/software
             Method: get
             ApiId: !Ref Api
         GetSelectSoftware:
           Type: HttpApi
           Properties:
-            Path: /v1/{contributor}/software/{titles}
+            Path: /v1/{contributor_id}/software/{title_ids}
             Method: get
             ApiId: !Ref Api
-
-  GetPatch:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/get_patch
-      Policies:
-        - DynamoDBReadPolicy:
-            TableName: !Ref CommunityPatchTableName
-      Events:
         GetPatch:
           Type: HttpApi
           Properties:
-            Path: /v1/{contributor}/patch/{title}
+            Path: /v1/{contributor_id}/patch/{title_id}
             Method: get
             ApiId: !Ref Api

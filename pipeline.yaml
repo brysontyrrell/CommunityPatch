@@ -459,6 +459,7 @@ Resources:
                     "DomainName": "${DomainName}",
                     "HostedZoneId": "${HostedZoneId}",
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
+                    "CognitoUserPoolArn": { "Fn::GetParam" : ["CognitoArtifact", "outputs.json", "CognitoUserPoolArn"]},
                     "AppleClientId": { "Fn::GetParam" : ["CognitoArtifact", "outputs.json", "AppleIdLoginClientId"]},
                     "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
@@ -488,6 +489,7 @@ Resources:
                     "DomainName": "${DomainName}",
                     "HostedZoneId": "${HostedZoneId}",
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
+                    "CognitoUserPoolArn": { "Fn::GetParam" : ["CognitoArtifact", "outputs.json", "CognitoUserPoolArn"]},
                     "AppleClientId": { "Fn::GetParam" : ["CognitoArtifact", "outputs.json", "AppleIdLoginClientId"]},
                     "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
@@ -517,6 +519,7 @@ Resources:
                     "DomainName": "${DomainName}",
                     "HostedZoneId": "${HostedZoneId}",
                     "RegionalCertificateArn": "/communitypatch/${Namespace}/certificate_arn",
+                    "CognitoUserPoolArn": { "Fn::GetParam" : ["CognitoArtifact", "outputs.json", "CognitoUserPoolArn"]},
                     "AppleClientId": { "Fn::GetParam" : ["CognitoArtifact", "outputs.json", "AppleIdLoginClientId"]},
                     "CommunityPatchTableName": { "Fn::GetParam" : ["GlobalTablesArtifact", "outputs.json", "CommunityPatchTableName"]}
                   }
