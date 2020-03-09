@@ -20,8 +20,6 @@ Resources:
           AttributeType: S
         - AttributeName: title_id
           AttributeType: S
-        - AttributeName: token_id
-          AttributeType: S
 
       KeySchema:
         - AttributeName: contributor_id
