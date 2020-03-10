@@ -137,7 +137,7 @@ Resources:
         AddVersion:
           Type: Api
           Properties:
-            Path: /api/v1/titles/{title_id}/versions
+            Path: /v1/titles/{title_id}/versions
             Method: post
             RestApiId:
               Ref: ApiGateway

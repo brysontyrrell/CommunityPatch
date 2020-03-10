@@ -48,7 +48,7 @@ def lambda_handler(event, context):
         # Returns the full definition body of the selected title for a contributor
 
         result = communitypatchtable.get_item(
-            Key={"contributor_id": contributor_id, "type": f"TITLE#{title_id}",}
+            Key={"contributor_id": contributor_id, "type": f"TITLE#{title_id}"}
         )
         try:
             return {
