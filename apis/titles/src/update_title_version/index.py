@@ -209,7 +209,10 @@ def get_index(qs_params, title_patches):
 
 def update_title(contributor_id, title_body):
     communitypatchtable.update_item(
-        Key={"contributor_id": contributor_id, "type": f"TITLE#{title_body['id']}"},
+        Key={
+            "contributor_id": contributor_id,
+            "type": f"TITLE#{title_body['id'].lower()}",
+        },
         UpdateExpression="set body = :bd, "
         "summary.currentVersion = :cv, "
         "summary.lastModified = :lm",
