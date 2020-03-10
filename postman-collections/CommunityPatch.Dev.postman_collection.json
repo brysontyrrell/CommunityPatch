@@ -1,0 +1,451 @@
+{
+	"info": {
+		"_postman_id": "8d9e3c2d-2964-4a3d-9afb-2271c42474e5",
+		"name": "CommunityPatch.Dev",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Contributors API",
+			"item": [
+				{
+					"name": "Create API Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "95e49ad1-adb5-4c83-b223-43a2e429bd6e",
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"postman.setEnvironmentVariable(\"API Token ID\", jsonData.id);",
+									"postman.setEnvironmentVariable(\"API Token\", jsonData.api_token);",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{Access Token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://contributors.communitypatch.dev/v1/tokens",
+							"protocol": "https",
+							"host": [
+								"contributors",
+								"communitypatch",
+								"dev"
+							],
+							"path": [
+								"v1",
+								"tokens"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Invalidate API Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "91eabfb5-3f82-481b-8864-7ee2abc9b986",
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"postman.setEnvironmentVariable(\"API Token ID\", \"\");",
+									"postman.setEnvironmentVariable(\"API Token\", \"\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{Access Token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://contributors.communitypatch.dev/v1/tokens/:token_id/invalidate",
+							"protocol": "https",
+							"host": [
+								"contributors",
+								"communitypatch",
+								"dev"
+							],
+							"path": [
+								"v1",
+								"tokens",
+								":token_id",
+								"invalidate"
+							],
+							"variable": [
+								{
+									"key": "token_id",
+									"value": "{{API Token}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Titles API",
+			"item": [
+				{
+					"name": "Create Title",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "{{API Token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"publisher\": \"Xcode\", \n    \"currentVersion\": \"11.2.1\", \n    \"requirements\": [\n        {\n            \"operator\": \"is\", \n            \"and\": true, \n            \"type\": \"recon\", \n            \"name\": \"Application Bundle ID\", \n            \"value\": \"com.apple.dt.Xcode\"\n        }\n    ], \n    \"name\": \"Xcode\", \n    \"appName\": \"Xcode.app\", \n    \"lastModified\": \"2020-03-10T20:42:08Z\", \n    \"patches\": [\n        {\n            \"releaseDate\": \"2019-12-09T19:55:53Z\", \n            \"killApps\": [\n                {\n                    \"appName\": \"Xcode.app\", \n                    \"bundleId\": \"com.apple.dt.Xcode\"\n                }\n            ], \n            \"version\": \"11.2.1\", \n            \"components\": [\n                {\n                    \"version\": \"11.2.1\", \n                    \"name\": \"Xcode\", \n                    \"criteria\": [\n                        {\n                            \"operator\": \"is\", \n                            \"and\": true, \n                            \"type\": \"recon\", \n                            \"name\": \"Application Bundle ID\", \n                            \"value\": \"com.apple.dt.Xcode\"\n                        }, \n                        {\n                            \"operator\": \"is\", \n                            \"type\": \"recon\", \n                            \"name\": \"Application Version\", \n                            \"value\": \"11.2.1\"\n                        }\n                    ]\n                }\n            ], \n            \"standalone\": true, \n            \"minimumOperatingSystem\": \"10.14.4\", \n            \"dependencies\": [], \n            \"reboot\": false, \n            \"capabilities\": [\n                {\n                    \"operator\": \"greater than or equal\", \n                    \"type\": \"recon\", \n                    \"name\": \"Operating System Version\", \n                    \"value\": \"10.14.4\"\n                }\n            ]\n        }\n    ], \n    \"extensionAttributes\": [], \n    \"id\": \"Xcode\", \n    \"bundleId\": \"com.apple.dt.Xcode\"\n}"
+						},
+						"url": {
+							"raw": "https://api.communitypatch.dev/v1/titles",
+							"protocol": "https",
+							"host": [
+								"api",
+								"communitypatch",
+								"dev"
+							],
+							"path": [
+								"v1",
+								"titles"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Version",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{API Token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"releaseDate\": \"2020-03-10T21:17:16Z\", \n    \"killApps\": [\n        {\n            \"appName\": \"Xcode.app\", \n            \"bundleId\": \"com.apple.dt.Xcode\"\n        }\n    ], \n    \"version\": \"11.3.1\", \n    \"components\": [\n        {\n            \"version\": \"11.3.1\", \n            \"name\": \"Xcode\", \n            \"criteria\": [\n                {\n                    \"operator\": \"is\", \n                    \"and\": true, \n                    \"type\": \"recon\", \n                    \"name\": \"Application Bundle ID\", \n                    \"value\": \"com.apple.dt.Xcode\"\n                }, \n                {\n                    \"operator\": \"is\", \n                    \"type\": \"recon\", \n                    \"name\": \"Application Version\", \n                    \"value\": \"11.3.1\"\n                }\n            ]\n        }\n    ], \n    \"standalone\": true, \n    \"minimumOperatingSystem\": \"10.14.4\", \n    \"dependencies\": [], \n    \"reboot\": false, \n    \"capabilities\": [\n        {\n            \"operator\": \"greater than or equal\", \n            \"type\": \"recon\", \n            \"name\": \"Operating System Version\", \n            \"value\": \"10.14.4\"\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "https://api.communitypatch.dev/v1/titles/Xcode/versions",
+							"protocol": "https",
+							"host": [
+								"api",
+								"communitypatch",
+								"dev"
+							],
+							"path": [
+								"v1",
+								"titles",
+								"Xcode",
+								"versions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Version",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{API Token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://api.communitypatch.dev/v1/titles/Xcode/versions/:version",
+							"protocol": "https",
+							"host": [
+								"api",
+								"communitypatch",
+								"dev"
+							],
+							"path": [
+								"v1",
+								"titles",
+								"Xcode",
+								"versions",
+								":version"
+							],
+							"variable": [
+								{
+									"key": "version",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Read All Titles",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{API Token}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://api.communitypatch.dev/v1/titles/:title_id",
+							"protocol": "https",
+							"host": [
+								"api",
+								"communitypatch",
+								"dev"
+							],
+							"path": [
+								"v1",
+								"titles",
+								":title_id"
+							],
+							"variable": [
+								{
+									"key": "title_id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Read Title",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{API Token}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://api.communitypatch.dev/v1/titles/:title_id",
+							"protocol": "https",
+							"host": [
+								"api",
+								"communitypatch",
+								"dev"
+							],
+							"path": [
+								"v1",
+								"titles",
+								":title_id"
+							],
+							"variable": [
+								{
+									"key": "title_id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Title",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{API Token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://api.communitypatch.dev/api/v1/titles/:title_id",
+							"protocol": "https",
+							"host": [
+								"api",
+								"communitypatch",
+								"dev"
+							],
+							"path": [
+								"api",
+								"v1",
+								"titles",
+								":title_id"
+							],
+							"variable": [
+								{
+									"key": "title_id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Jamf API",
+			"item": [
+				{
+					"name": "Read All Title Summaries",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://jamf.communitypatch.dev/v1/:contributor_id/software",
+							"protocol": "https",
+							"host": [
+								"jamf",
+								"communitypatch",
+								"dev"
+							],
+							"path": [
+								"v1",
+								":contributor_id",
+								"software"
+							],
+							"variable": [
+								{
+									"key": "contributor_id",
+									"value": "{{Contributor ID}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Read Selected Title Summaries",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://jamf.communitypatch.dev/v1/:contributor_id/software/:title_id",
+							"protocol": "https",
+							"host": [
+								"jamf",
+								"communitypatch",
+								"dev"
+							],
+							"path": [
+								"v1",
+								":contributor_id",
+								"software",
+								":title_id"
+							],
+							"variable": [
+								{
+									"key": "contributor_id",
+									"value": "{{Contributor ID}}"
+								},
+								{
+									"key": "title_id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Read Title Definition",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://jamf.communitypatch.dev/v1/:contributor_id/patch/macOS",
+							"protocol": "https",
+							"host": [
+								"jamf",
+								"communitypatch",
+								"dev"
+							],
+							"path": [
+								"v1",
+								":contributor_id",
+								"patch",
+								"macOS"
+							],
+							"variable": [
+								{
+									"key": "contributor_id",
+									"value": "{{Contributor ID}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		}
+	],
+	"protocolProfileBehavior": {}
+}
