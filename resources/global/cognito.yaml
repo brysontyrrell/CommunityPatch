@@ -31,7 +31,17 @@ Resources:
     Type: AWS::Cognito::UserPoolResourceServer
     Properties:
       Identifier: contributors-api
-      Name: WorkshopApi
+      Name: Contributors API
+      UserPoolId: !Ref UserPool
+      Scopes:
+        - ScopeName: full_access
+          ScopeDescription: Default scope
+
+  TitlesApi:
+    Type: AWS::Cognito::UserPoolResourceServer
+    Properties:
+      Identifier: titles-api
+      Name: Titles API
       UserPoolId: !Ref UserPool
       Scopes:
         - ScopeName: full_access

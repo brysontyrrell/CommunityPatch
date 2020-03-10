@@ -102,7 +102,7 @@ def lambda_handler(event, context):
 
 def read_title(contributor_id, title_id):
     result = communitypatchtable.get_item(
-        Key={"contributor_id": contributor_id, "type": f"TITLE#{title_id}"}
+        Key={"contributor_id": contributor_id, "type": f"TITLE#{title_id.lower()}"}
     )
     return json.loads(result["Item"]["body"])
 

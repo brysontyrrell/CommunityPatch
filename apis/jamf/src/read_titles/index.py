@@ -37,7 +37,7 @@ def lambda_handler(event, context):
             query_result = communitypatchtable.query(
                 IndexName="ContributorSummaries",
                 KeyConditionExpression=Key("contributor_id").eq(contributor_id)
-                & Key("title_id").eq(i),
+                & Key("title_id").eq(i.lower()),
             )
             if query_result.get("Items"):
                 results.append(query_result["Items"][0]["summary"])
@@ -48,7 +48,7 @@ def lambda_handler(event, context):
         # Returns the full definition body of the selected title for a contributor
 
         result = communitypatchtable.get_item(
-            Key={"contributor_id": contributor_id, "type": f"TITLE#{title_id}"}
+            Key={"contributor_id": contributor_id, "type": f"TITLE#{title_id.lower()}"}
         )
         try:
             return {

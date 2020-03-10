@@ -21,7 +21,7 @@ def lambda_handler(event, context):
         communitypatchtable.delete_item(
             Key={
                 "contributor_id": authenticated_claims["sub"],
-                "type": f"TITLE#{title_id}",
+                "type": f"TITLE#{title_id.lower()}",
             },
             ConditionExpression="attribute_exists(#type)",
             ExpressionAttributeNames={"#type": "type"},

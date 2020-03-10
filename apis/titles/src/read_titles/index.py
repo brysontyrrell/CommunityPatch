@@ -32,7 +32,7 @@ def lambda_handler(event, context):
         result = communitypatchtable.get_item(
             Key={
                 "contributor_id": authenticated_claims["sub"],
-                "type": f"TITLE#{title_id}",
+                "type": f"TITLE#{title_id.lower()}",
             }
         )
         try:

@@ -61,10 +61,10 @@ def create_table_entry(contributor_id, title_body):
     communitypatchtable.put_item(
         Item={
             "contributor_id": contributor_id,
-            "type": f"TITLE#{title_body['id']}",
+            "type": f"TITLE#{title_body['id'].lower()}",
             "search_index": "TITLE",
             "aws_region": os.getenv("AWS_REGION"),
-            "title_id": title_body["id"],
+            "title_id": title_body["id"].lower(),
             "body": json.dumps(title_body),
             "summary": {
                 "id": title_body["id"],
