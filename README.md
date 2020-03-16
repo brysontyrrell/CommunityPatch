@@ -2,6 +2,10 @@
 
 CommunityPatch is a free, open-source, external patch source for Jamf Pro administrators to publish patch definitions they maintain for the broader Jamf community to subscribe to. Access CommunityPatch using an Apple ID, and then create and manage API tokens to interact with the service API.
 
+### Quick Links
+
+[Jamf Pro Setup](docs/JamfProSetup.md) | [Contributors API](apis/contributors/ContributorsAPI.md) | [Titles API](apis/titles/TitlesAPI.md)
+
 ## Jamf Pro Setup
 
 Anyone can subscribed to a contributor's patch titles in Jamf Pro - they are publicly available feeds. All that is required is their `Contributor ID` or their `Contributor Alias`.

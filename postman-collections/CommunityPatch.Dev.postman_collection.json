@@ -51,6 +51,57 @@
 					"response": []
 				},
 				{
+					"name": "Create API Token (With Options)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "95e49ad1-adb5-4c83-b223-43a2e429bd6e",
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"postman.setEnvironmentVariable(\"API Token ID\", jsonData.id);",
+									"postman.setEnvironmentVariable(\"API Token\", jsonData.api_token);",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "{{Access Token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"expires_in_days\": 1,\n\t\"titles_in_scope\": []\n}"
+						},
+						"url": {
+							"raw": "https://contributors.communitypatch.dev/v1/tokens",
+							"protocol": "https",
+							"host": [
+								"contributors",
+								"communitypatch",
+								"dev"
+							],
+							"path": [
+								"v1",
+								"tokens"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Invalidate API Token",
 					"event": [
 						{
